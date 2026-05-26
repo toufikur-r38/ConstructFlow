@@ -1,0 +1,333 @@
+﻿{% extends "layout.html" %}
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .filter-node-input {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        border-radius: 8px !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .filter-node-input:focus {
+        background-color: #ffffff !important;
+        border-color: var(--navy) !important;
+        box-shadow: 0 0 0 0.2rem rgba(26, 42, 108, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        outline: none;
+    }
+    
+
+    /* Modal styling to match navy/red theme */
+    .modal-content {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .text-navy {
+        color: var(--navy);
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+    <div>
+        <h3 class="fw-bold mb-0" style="color: var(--navy);">Expenditure Ledger</h3>
+        <p class="text-muted small mb-0">Records sorted by Date (Oldest to Newest)</p>
+    </div>
+    <a href="{{ url_for('costs.download_pdf', **request.args) }}" class="btn btn-outline-danger fw-bold shadow-sm" id="downloadPdfBtn">
+        <i class="fas fa-file-pdf me-1"></i> Download PDF
+    </a>
+</div>
+
+<div class="card p-3 mb-4 shadow-sm bg-white border-0 rounded-3">
+    <form class="row g-2 align-items-end" method="GET" action="{{ url_for('costs.view_costs') }}" id="filterForm">
+        
+        <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">Project</label>
+            <select name="project_filter" class="form-select form-select-sm filter-node-input" onchange="this.form.submit()">
+                <option value="">All Projects</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" 
+                    {% if request.args.get('project_filter') == project.id|string %}selected{% endif %}>
+                    {{ project.project_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">Category</label>
+            <select name="type_filter" class="form-select form-select-sm filter-node-input" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}"
+                        {% if request.args.get('type_filter') == cat %}selected{% endif %}>
+                        {{ cat }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">From Date</label>
+            <input type="text" id="start_date" name="start_date"
+                class="form-control form-control-sm filter-node-input"
+                value="{{ request.args.get('start_date', '') }}"
+                placeholder="YYYY-MM-DD">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">To Date</label>
+            <input type="text" id="end_date" name="end_date"
+                class="form-control form-control-sm filter-node-input"
+                value="{{ request.args.get('end_date', '') }}"
+                placeholder="YYYY-MM-DD">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1 d-block">&nbsp;</label>
+            <a href="{{ url_for('costs.view_costs') }}" class="btn btn-sm btn-outline-danger w-100 fw-bold">
+                <i class="fas fa-times me-1"></i> Reset All Filters
+            </a>
+        </div>
+
+    </form>
+</div>
+
+<div class="table-responsive rounded-3 shadow-sm bg-white">
+    <div class="px-3 pt-2 pb-2 small text-muted text-start">
+        <span class="text-danger fw-semibold">Note:</span>
+        Negative amounts represent refunds, reimbursements, or accounting adjustments.
+    </div>
+    {% if costs %}
+    <table class="table table-hover align-middle mb-0">
+        <thead style="background-color: var(--navy); color: white;">
+            <tr>
+                <th class="py-3 ps-4">Date</th>
+                <th class="py-3">Project & Location</th>
+                <th class="py-3">Type</th>
+                <th class="py-3">Remarks</th>
+                <th class="py-3">Quantity</th>
+                <th class="py-3">Unit Rate</th>
+                <th class="py-3 pe-4 text-end">Total Amount</th>
+                {% if current_user.role == 'admin' %}<th class="text-end pe-4">Actions</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody class="border-top-0">
+            {% for cost in costs %}
+            <tr>
+                <td class="ps-4">
+                    <div class="fw-bold text-dark">{{ cost.date.strftime('%Y-%m-%d') if cost.date else 'N/A' }}</div>
+                </td>
+                <td>
+                    <div class="fw-bold">{{ cost.project.project_name }}</div>
+                    <small class="text-muted">{{ cost.project.address }}</small>
+                </td>
+                <td><span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill fw-bold">{{ cost.cost_type | upper }}</span></td>
+                <td class="text-muted small text-truncate" style="max-width: 150px;">{{ cost.remarks or '---' }}</td>
+                <td class="fw-semibold text-secondary">{{ "{:,.2f}".format(cost.quantity or 0) }}</td>
+                <td class="text-muted small">à§³ {{ "{:,.2f}".format(cost.unit_rate or 0) }}</td>
+                <td class="{{ 'text-danger fw-semibold' if cost.total_amount < 0 else '' }}">
+                        à§³ {{ "{:,.2f}".format(cost.total_amount) }}
+                </td>
+                {% if current_user.role == 'admin' %}
+                    <td class="text-end pe-4">
+                        <div class="btn-group shadow-sm bg-white rounded">
+                            <a href="{{ url_for('admin.edit_cost', cost_id=cost.id) }}" class="btn btn-sm btn-outline-light border-0 text-info" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-light border-0 text-danger" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#voidModal" 
+                                    data-cost-id="{{ cost.id }}"
+                                    data-cost-date="{{ cost.date.strftime('%Y-%m-%d') }}"
+                                    data-cost-amount="{{ "{:,.2f}".format(cost.total_amount) }}"
+                                    data-void-url="{{ url_for('admin.void_cost', cost_id=cost.id) }}"
+                                    title="Delete Entry">
+                                <i class="fas fa-trash-restore"></i>
+                            </button>
+                        </div>
+                    </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="bg-light">
+            <tr>
+                <td colspan="{% if current_user.role == 'admin' %}7{% else %}6{% endif %}" class="text-end fw-bold py-3">
+                    Total Page Expenditure:
+                </td>
+                <td class="pe-4 text-end fw-bold text-danger fs-5 py-3">
+                    à§³ {{ "{:,.2f}".format(costs | map(attribute='total_amount') | sum) }}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-search text-muted mb-3" style="font-size: 3rem; opacity: 0.3;"></i>
+        <h4 class="fw-bold text-muted">No Costs Found</h4>
+        <p class="text-secondary mb-0">Try changing your filters.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="voidModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Delete Expenditure Entry
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="voidForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark small mb-4">
+                        <strong>Warning:</strong> This entry will be removed from the active ledger and archived in the Deleted Log.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="mb-1 text-muted small uppercase fw-bold">Target Entry</p>
+                        <div class="p-3 bg-light rounded border">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-secondary" id="displayDate"></span>
+                                <span class="fw-bold text-danger">à§³ <span id="displayAmount"></span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="void_reason" class="form-label fw-bold text-navy">Reason for Deleting <span class="text-danger">*</span></label>
+                        <textarea class="form-control border-2" 
+                                  id="void_reason" 
+                                  name="void_reason" 
+                                  rows="3" 
+                                  placeholder="e.g., Duplicate entry, incorrect unit rate, wrong project selected" 
+                                  required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label fw-bold text-navy">Confirm Admin Password <span class="text-danger">*</span></label>
+                        <input type="password"
+                               id="confirm_password"
+                               name="confirm_password"
+                               class="form-control border-2 js-password-toggle"
+                               placeholder="Enter password to authorize"
+                               required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold">
+                        Confirm Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterForm = document.getElementById('filterForm');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+        if (typeof flatpickr === 'function') {
+            flatpickr("#start_date", {
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                onChange: function() {
+                    filterForm.submit();
+                }
+            });
+
+            flatpickr("#end_date", {
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                onChange: function() {
+                    filterForm.submit();
+                }
+            });
+        }
+
+        const voidModal = document.getElementById('voidModal');
+        if (voidModal) {
+            voidModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+
+                const costDate = button.getAttribute('data-cost-date');
+                const costAmount = button.getAttribute('data-cost-amount');
+                document.getElementById('voidForm').action = button.getAttribute('data-void-url');
+                document.getElementById('displayDate').textContent = 'Date: ' + costDate;
+                document.getElementById('displayAmount').textContent = costAmount;
+                const reasonField = document.getElementById('void_reason');
+                const passwordField = document.getElementById('confirm_password');
+                reasonField.value = '';
+                passwordField.value = '';
+                setTimeout(() => reasonField.focus(), 500);
+            });
+        }
+
+        if (downloadPdfBtn) {
+            downloadPdfBtn.addEventListener('click', function(event) {
+                const projectSelect = document.querySelector('select[name="project_filter"]');
+                const categorySelect = document.querySelector('select[name="type_filter"]');
+                const startDate = document.getElementById('start_date').value.trim();
+                const endDate = document.getElementById('end_date').value.trim();
+
+                const projectValue = projectSelect.value;
+                const categoryValue = categorySelect.value;
+
+                if (!projectValue && !categoryValue && !startDate && !endDate) {
+                    event.preventDefault();
+                    Swal.fire({
+                        title: 'Select a Filter First',
+                        text: 'Please choose at least one filter before generating a PDF report.',
+                        icon: 'warning',
+                        confirmButtonColor: '#dc3545',
+                        backdrop: 'rgba(26, 42, 108, 0.4)'
+                    });
+                    return;
+                }
+
+                event.preventDefault();
+
+                const projectText = projectValue
+                    ? projectSelect.options[projectSelect.selectedIndex].text.trim()
+                    : 'All Projects';
+                const categoryText = categoryValue || 'All Categories';
+                const fromText = startDate || 'All Time';
+                const toText = endDate || '{{ effective_end_date }}';
+
+                Swal.fire({
+                    title: 'Generate PDF?',
+                    html: `
+                        <div class="text-start small">
+                            <div><strong>Project:</strong> ${projectText}</div>
+                            <div><strong>Category:</strong> ${categoryText}</div>
+                            <div><strong>From Date:</strong> ${fromText}</div>
+                            <div><strong>To Date:</strong> ${toText}</div>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-file-pdf"></i> Generate PDF',
+                    cancelButtonText: 'Cancel',
+                    backdrop: 'rgba(26, 42, 108, 0.4)'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = downloadPdfBtn.href;
+                    }
+                });
+            });
+        }
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+{% endblock %}
+

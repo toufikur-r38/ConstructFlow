@@ -1,0 +1,177 @@
+﻿{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .form-control-node {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        border-radius: 8px !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    .form-control-node:focus {
+        background-color: #ffffff !important;
+        border-color: var(--navy) !important;
+        box-shadow: 0 0 0 0.25rem rgba(26, 42, 108, 0.1), inset 0 1px 2px rgba(0,0,0,0.05) !important;
+        outline: none;
+    }
+    .input-group-text-node {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        border-right: none !important;
+        border-radius: 8px 0 0 8px !important;
+        color: #adb5bd !important;
+    }
+    .form-control-node.with-icon {
+        border-left: none !important;
+        border-radius: 0 8px 8px 0 !important;
+    }
+</style>
+
+<div class="container-fluid mt-5">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 border-top border-4 border-info" style="border-radius: 12px;">
+                <div class="card-header bg-white border-0 py-4 mt-2">
+                    <div class="d-flex justify-content-between align-items-center px-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-info bg-opacity-10 p-3 rounded-circle me-3">
+                                <i class="fas fa-user-edit text-info fs-4"></i>
+                            </div>
+                            <h4 class="fw-bold mb-0" style="color: var(--navy);">Edit User Profile</h4>
+                        </div>
+                        <a href="{{ url_for('admin.register') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body px-4 pb-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 text-info small d-flex align-items-center mb-4 rounded-3">
+                        <i class="fas fa-info-circle fs-4 me-3"></i>
+                        <div>
+                            Editing profile for <strong>@{{ user.username }}</strong>. <br>
+                            <span class="opacity-75">The username is a unique identifier and cannot be changed.</span>
+                        </div>
+                    </div>
+
+                    <form id="editUserForm" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Full Name <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-id-card"></i></span>
+                                <input type="text" name="full_name" class="form-control form-control-node with-icon" value="{{ user.full_name }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Access Level / Role <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-shield-alt"></i></span>
+                                <select name="role" id="userRole" class="form-select form-control-node with-icon" required {% if user.id == current_user.id %}disabled{% endif %}>
+                                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
+                                    <option value="operator" {% if user.role == 'operator' %}selected{% endif %}>Operator (Add Data)</option>
+                                    <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>Viewer (Read-Only)</option>
+                                </select>
+                            </div>
+                            {% if user.id == current_user.id %}
+                                <div class="form-text text-danger small mt-2"><i class="fas fa-exclamation-triangle me-1"></i> You cannot change your own admin role.</div>
+                                <input type="hidden" name="role" value="admin">
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4 mt-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Reset Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-key"></i></span>
+                                <input type="password" name="password" class="form-control form-control-node with-icon js-password-toggle" placeholder="Leave blank to keep current password">
+                            </div>
+                            <div class="form-text text-muted small mt-2">Only type here if you need to override and reset the user's forgotten password.</div>
+                        </div>
+                        
+                        <div class="mb-3 border-top pt-4 mt-2">
+                            <label class="form-label small fw-bold text-muted text-uppercase">
+                                <i class="fas fa-shield-alt me-1 text-danger"></i> 
+                                Confirm Your Password <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                               <input type="password" 
+                                       name="confirm_password" 
+                                       class="form-control form-control-node with-icon js-password-toggle" 
+                                       placeholder="Enter your password to authorize this change" 
+                                       required>
+                            </div>
+                            <div class="form-text text-muted small mt-2">
+                                Required to confirm it's really you making this change.
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-info text-white py-3 fw-bold rounded-3 shadow-sm border-0" style="font-size: 1.05rem;">
+                                <i class="fas fa-save me-2"></i> Update Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="authErrorTracker" data-has-error="{{ 'true' if auth_error else 'false' }}" style="display: none;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    // --- Auth Error SweetAlert ---
+    const errorTracker = document.getElementById('authErrorTracker');
+    
+    // If Flask says auth_error is true, this will pop up automatically
+    if (errorTracker && errorTracker.dataset.hasError === 'true') {
+        window.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                title: 'Authentication Failed!',
+                text: 'The admin password you entered is incorrect. No changes were saved.',
+                icon: 'error',
+                confirmButtonColor: '#e63946',
+                confirmButtonText: 'Try Again',
+                backdrop: 'rgba(26, 42, 108, 0.4)'
+            });
+        });
+    }
+
+    // --- Normal Confirmation Alert ---
+    document.getElementById('editUserForm').addEventListener('submit', function (e) {
+        e.preventDefault(); // Stop immediate form submission
+        const form = this; 
+        
+        // Get the role text to show in the alert
+        const roleSelect = document.getElementById('userRole');
+        const roleText = roleSelect.options[roleSelect.selectedIndex].text;
+
+        Swal.fire({
+            title: 'Confirm Changes?',
+            html: `You are updating the profile for <strong class="text-info">@{{ user.username }}</strong>.<br><br>Their access level will be set to: <strong>${roleText}</strong>.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#0dcaf0', 
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-check-circle"></i> Yes, save changes!',
+            cancelButtonText: 'Cancel',
+            backdrop: `rgba(26, 42, 108, 0.4)`
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Submit immediately! Let Flask decide if it was truly successful or not.
+                form.submit(); 
+            }
+        });
+    });
+</script>
+
+{% endblock %}
+

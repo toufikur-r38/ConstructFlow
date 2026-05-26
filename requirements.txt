@@ -1,0 +1,10 @@
+﻿Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+Flask-Limiter
+Flask-Caching
+python-dotenv
+Werkzeug
+SQLAlchemy
+reportlab
