@@ -1,4 +1,4 @@
-﻿from flask import Flask, redirect, url_for, flash, request, g
+from flask import Flask, redirect, url_for, flash, request, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 import json
@@ -46,16 +46,20 @@ def create_app():
     # Import models
     from . import models
     # Register blueprints
-    from .routes.auth import auth_bp
-    from .routes.dashboard import dashboard_bp
-    from .routes.projects import projects_bp
-    from .routes.costs import costs_bp
-    from .routes.admin import admin_bp
+    from .modules.account.routes import account_bp
+    from .modules.auth.routes import auth_bp
+    from .modules.admin.routes import admin_bp
+    from .modules.construction.routes.admin_actions import construction_admin_bp
+    from .modules.construction.routes.dashboard import dashboard_bp
+    from .modules.construction.routes.projects import projects_bp
+    from .modules.construction.routes.costs import costs_bp
+    app.register_blueprint(account_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(construction_admin_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(projects_bp)
     app.register_blueprint(costs_bp)
-    app.register_blueprint(admin_bp)
 
     # Error Handlers
     @app.errorhandler(429)
@@ -93,4 +97,3 @@ def create_app():
         return response
 
     return app
-

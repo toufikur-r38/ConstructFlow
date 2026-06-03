@@ -1,11 +1,11 @@
-﻿import os
+import os
 import secrets
 from dotenv import load_dotenv
 
 from app import create_app
 from app.extensions import db
 from app.models import User
-from app.utils.dropdown_options import seed_dropdown_options
+from app.modules.construction.utils.dropdown_options import seed_dropdown_options
 from werkzeug.security import generate_password_hash
 
 load_dotenv()
@@ -37,4 +37,3 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(debug=True)
-

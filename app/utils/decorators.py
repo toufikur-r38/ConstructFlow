@@ -1,4 +1,4 @@
-﻿from functools import wraps
+from functools import wraps
 from flask import redirect, url_for, flash, request
 from flask_login import current_user
 import logging
@@ -25,4 +25,3 @@ def write_access_required(f):
             return redirect(url_for('dashboard.index'))
         return f(*args, **kwargs)
     return decorated_function
-

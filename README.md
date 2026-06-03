@@ -1,4 +1,4 @@
-﻿# ConstructFlow
+# ConstructFlow
 
 ConstructFlow is a Flask-based construction project cost tracker for project ledgers, expenditure entries, PDF reporting, audit trails, user roles, and managed dropdown options.
 

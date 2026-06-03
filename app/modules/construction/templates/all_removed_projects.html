@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    :root {
+        --table-border: #edf2f7;
+        --navy: #1a2a6c;
+        --soft-bg: #f8fafc;
+    }
+    body { background-color: var(--soft-bg); }
+    .filter-node { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--table-border); border-left: 5px solid #ffc107; }
+    .form-control-custom { border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px 12px; }
+    .custom-table { border-collapse: separate; border-spacing: 0 10px; }
+    .custom-table thead th { background-color: transparent !important; border: none; color: #718096; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 12px 15px; }
+    .custom-table tbody tr { background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease; border-left: 3px solid #dc3545; }
+    .custom-table tbody tr:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+    .custom-table td { padding: 18px 15px; border-top: 1px solid var(--table-border); border-bottom: 1px solid var(--table-border); vertical-align: middle; }
+    .custom-table td:first-child { border-left: 1px solid var(--table-border); border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+    .custom-table td:last-child { border-right: 1px solid var(--table-border); border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+</style>
+
+<div class="container-fluid py-4 animation-fade-in">
+    <div class="mb-4 d-flex justify-content-between align-items-end">
+        <div>
+            <h3 class="fw-bold mb-1 text-warning"><i class="fas fa-folder-minus me-2"></i>Removed Projects Archive</h3>
+            <p class="text-muted small mb-0">View and restore soft-deleted projects.</p>
+        </div>
+        <a href="{{ url_for('construction_admin.audit_log') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-arrow-left me-2"></i>Back to Audit Hub</a>
+    </div>
+
+    <div class="filter-node mb-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Search Project</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="searchProject" class="form-control form-control-custom border-start-0" placeholder="Type project name...">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted text-uppercase">Sector Filter</label>
+                <select id="filterSector" class="form-select form-control-custom">
+                    <option value="all">All Sectors</option>
+                    {% set sectors = [] %}
+                    {% for p in projects %}
+                        {% if p.sector and p.sector not in sectors %}
+                            {% set _ = sectors.append(p.sector) %}
+                            <option value="{{ p.sector }}">{{ p.sector }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table custom-table" id="archiveTable">
+            <thead>
+                <tr>
+                    <th>Project Name & Sector</th>
+                    <th>Firm Name</th>
+                    <th>Contract Price</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in projects %}
+                <tr class="archive-row" data-sector="{{ p.sector }}">
+                    <td>
+                        <div class="fw-bold text-dark proj-name">{{ p.project_name }}</div>
+                        <div class="text-muted small text-uppercase fw-bold">({{ p.sector }})</div>
+                    </td>
+                    <td class="text-secondary small">{{ p.firm_name or 'N/A' }}</td>
+                    <td class="fw-bold text-danger">৳ {{ "{:,.2f}".format(p.contract_price or 0) }}</td>
+                    <td><span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">REMOVED</span></td>
+                    <td class="text-end">
+                        <button type="button"
+                                class="btn btn-sm btn-success shadow-sm fw-bold"
+                                data-restore-url="{{ url_for('construction_admin.restore_project', id=p.id) }}"
+                                data-item-name="{{ p.project_name }}"
+                                onclick="openRestoreModal(this)">
+                            <i class="fas fa-undo me-1"></i> Restore
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center py-5 text-muted"><i class="fas fa-box-open fs-2 mb-3 d-block"></i>No removed projects found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i>Restore Record</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="restoreForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body p-4 text-center">
+                    <i class="fas fa-exclamation-circle text-success fs-1 mb-3"></i>
+                    <p class="mb-1">You are about to restore:</p>
+                    <h5 class="fw-bold text-dark" id="restoreItemName"></h5>
+                    <p class="text-muted small mt-3">This will change its status to active and include it in financial reports again.</p>
+                    <div class="mt-3 text-start">
+                        <label for="restorePassword" class="form-label fw-bold">Confirm Admin Password <span class="text-danger">*</span></label>
+                        <input type="password"
+                               id="restorePassword"
+                               name="confirm_password"
+                               class="form-control js-password-toggle"
+                               placeholder="Enter password to authorize"
+                               required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light justify-content-center">
+                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">Confirm Restore</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let restoreModalInstance = null;
+
+    function openRestoreModal(button) {
+        const name = button.dataset.itemName;
+        const restoreUrl = button.dataset.restoreUrl;
+
+        document.getElementById('restoreItemName').innerText = name;
+        document.getElementById('restoreForm').action = restoreUrl;
+        document.getElementById('restorePassword').value = '';
+
+        if (!restoreModalInstance && window.bootstrap) {
+            restoreModalInstance = new bootstrap.Modal(document.getElementById('restoreModal'));
+        }
+
+        if (restoreModalInstance) {
+            restoreModalInstance.show();
+        }
+    }
+
+    // Filter Logic
+    document.getElementById('searchProject').addEventListener('input', filterTable);
+    document.getElementById('filterSector').addEventListener('change', filterTable);
+
+    function filterTable() {
+        const search = document.getElementById('searchProject').value.toLowerCase();
+        const sector = document.getElementById('filterSector').value.toLowerCase();
+        document.querySelectorAll('.archive-row').forEach(row => {
+            const name = row.querySelector('.proj-name').innerText.toLowerCase();
+            const rowSector = (row.getAttribute('data-sector') || '').toLowerCase();
+            const matchSearch = name.includes(search);
+            const matchSector = sector === 'all' || rowSector === sector;
+            row.style.display = matchSearch && matchSector ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}
+

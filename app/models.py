@@ -1,4 +1,4 @@
-﻿from app.extensions import db
+from app.extensions import db
 from flask_login import UserMixin
 from datetime import datetime, timezone, timedelta
 
@@ -150,4 +150,3 @@ class DeletedLog(db.Model):
     void_reason = db.Column(db.String(500))  
     
     remover = db.relationship('User', backref='deletions')
-

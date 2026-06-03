@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 import os
 from logging.handlers import RotatingFileHandler
 
@@ -130,4 +130,3 @@ def configure_logging(app):
     app.logger.setLevel(logging.INFO)
 
     app.logger.info("Logging initialized with separate app, access, security, audit, and error files.")
-

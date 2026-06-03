@@ -1,0 +1,229 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .form-control-node {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        border-radius: 8px !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+
+    .form-control-node:focus {
+        background-color: #ffffff !important;
+        border-color: var(--navy) !important;
+        box-shadow: 0 0 0 0.25rem rgba(26, 42, 108, 0.1), inset 0 1px 2px rgba(0,0,0,0.05) !important;
+        outline: none;
+    }
+
+    .input-group-text-node {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+        border-right: none !important;
+        border-radius: 8px 0 0 8px !important;
+        color: #adb5bd !important;
+    }
+
+    .form-control-node.with-icon {
+        border-left: none !important;
+        border-radius: 0 8px 8px 0 !important;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="row mb-5">
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0 border-top border-4 border-primary h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-0 py-4 mt-2">
+                    <div class="text-center">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-block mb-3">
+                            <i class="fas fa-user-plus text-primary fs-3"></i>
+                        </div>
+                        <h4 class="fw-bold mb-0" style="color: var(--navy);">Add Authorized User</h4>
+                    </div>
+                </div>
+
+                <div class="card-body px-4 pb-4">
+                    <form action="{{ url_for('admin.register') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Username <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-user"></i></span>
+                                <input type="text" name="username" class="form-control form-control-node with-icon" placeholder="e.g. jdoe" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Full Name <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-id-card"></i></span>
+                                <input type="text" name="full_name" class="form-control form-control-node with-icon" placeholder="e.g. John Doe" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-lock"></i></span>
+                                <input type="password" name="password" class="form-control form-control-node with-icon js-password-toggle" placeholder="••••••••" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Access Level / Role <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text input-group-text-node"><i class="fas fa-shield-alt"></i></span>
+                                <select name="role" class="form-select form-control-node with-icon" required>
+                                    <option value="" selected disabled>Select a role...</option>
+                                    <option value="admin">Admin (Full Access)</option>
+                                    <option value="operator">Operator (Add Data)</option>
+                                    <option value="viewer">Viewer (Read-Only)</option>
+                                </select>
+                            </div>
+                            <div class="form-text text-muted small mt-2">Roles define what the user can see and edit.</div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3 shadow-sm border-0" style="background: linear-gradient(45deg, #1a2a6c, #2a48ad);">
+                                <i class="fas fa-save me-2"></i> Create User Account
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-secondary text-white p-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-users-cog me-2"></i>User Accounts Ledger</h6>
+                    <span class="badge bg-light text-dark">Total Users: {{ users|length if users else 0 }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-center">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Manage User</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in users %}
+                                <tr>
+                                    <td class="fw-bold text-primary">{{ u.username }}</td>
+                                    <td class="text-dark fw-semibold">{{ u.full_name or 'N/A' }}</td>
+                                    <td>
+                                        {% if u.role == 'admin' %}
+                                            <span class="badge bg-danger">Admin</span>
+                                        {% elif u.role == 'operator' %}
+                                            <span class="badge bg-info text-dark">Operator</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Viewer</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if u.is_active %}
+                                            <span class="badge bg-success shadow-sm px-3 py-2">
+                                                <i class="fas fa-user-check me-1"></i> Active
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary shadow-sm px-3 py-2">
+                                                <i class="fas fa-user-slash me-1"></i> Inactive
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.edit_user', user_id=u.id) }}" class="btn btn-sm btn-outline-primary border-0 fw-bold shadow-sm">
+                                            <i class="fas fa-edit me-1"></i> Edit
+                                        </a>
+                                        
+                                        {% if u.id != current_user.id %}
+                                        <form action="{{ url_for('admin.toggle_user_status', user_id=u.id) }}" method="POST" style="display: inline-block;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <input type="hidden" name="confirm_password" class="status-confirm-password">
+
+                                            <button type="button" 
+                                               class="btn btn-sm border-0 fw-bold shadow-sm toggle-status-btn {{ 'btn-outline-danger' if u.is_active else 'btn-outline-success' }}" 
+                                               data-username="{{ u.username }}"
+                                               data-action="{{ 'Deactivate' if u.is_active else 'Activate' }}">
+                                                <i class="fas fa-{{ 'user-slash' if u.is_active else 'user-check' }} me-1"></i>
+                                                {{ 'Deactivate' if u.is_active else 'Activate' }}
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="fas fa-users fs-2 mb-2 opacity-50"></i><br>
+                                        No users registered yet.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.querySelectorAll('.toggle-status-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault(); // Stop immediate button action
+            
+            const form = this.closest('form'); 
+            const actionText = this.getAttribute('data-action');
+            const username = this.getAttribute('data-username');
+            
+            // Set dynamic colors based on action
+            const confirmColor = actionText === 'Deactivate' ? '#d33' : '#198754';
+            const iconType = actionText === 'Deactivate' ? 'warning' : 'question';
+
+            Swal.fire({
+                title: `${actionText} User?`,
+                text: `Are you sure you want to ${actionText.toLowerCase()} the account for ${username}?`,
+                icon: iconType,
+                input: 'password',
+                inputPlaceholder: 'Enter your admin password',
+                inputAttributes: {
+                    autocapitalize: 'off',
+                    autocomplete: 'current-password'
+                },
+                showCancelButton: true,
+                confirmButtonColor: confirmColor,
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: `Yes, ${actionText.toLowerCase()} it!`,
+                cancelButtonText: 'Cancel',
+                backdrop: `rgba(26, 42, 108, 0.4)`,
+                preConfirm: (password) => {
+                    if (!password) {
+                        Swal.showValidationMessage('Password is required.');
+                    }
+                    return password;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.querySelector('.status-confirm-password').value = result.value;
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -143,10 +143,83 @@
             white-space: nowrap;
         }
 
+        .user-menu-toggle {
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            padding: 6px 10px 6px 6px;
+            min-height: 42px;
+        }
+
+        .user-menu-toggle:hover,
+        .user-menu-toggle:focus {
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+            box-shadow: none;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 193, 7, 0.18);
+            color: #ffc107;
+        }
+
+        .user-menu {
+            min-width: 290px;
+            border-radius: 10px;
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+        }
+
+        .user-menu-header {
+            background: color-mix(in srgb, var(--surface-soft) 92%, var(--navy));
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        .user-menu .dropdown-item {
+            padding: 10px 14px;
+        }
+
+        .user-menu .dropdown-item i {
+            width: 18px;
+        }
+
         /* Logout */
         .logout-btn {
             color: #ff5c5c !important;
             font-weight: 600;
+        }
+
+        .navbar-logout-form {
+            display: inline-flex;
+        }
+
+        .navbar-logout-btn {
+            height: 40px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.18);
+            color: #ff6b78;
+            background: rgba(230, 57, 70, 0.22);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+            font-weight: 700;
+        }
+
+        .navbar-logout-btn:hover,
+        .navbar-logout-btn:focus {
+            background: rgba(230, 57, 70, 0.36);
+            color: #ff8f99;
+            box-shadow: none;
         }
 
         .theme-toggle {
@@ -288,6 +361,52 @@
             color: #fff !important;
         }
 
+        .swal2-popup {
+            border-radius: 12px !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-popup {
+            background-color: var(--surface) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-soft) !important;
+            box-shadow: var(--shadow-soft) !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-title,
+        html[data-bs-theme="dark"] .swal2-html-container,
+        html[data-bs-theme="dark"] .swal2-content {
+            color: var(--text-main) !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-html-container .text-muted,
+        html[data-bs-theme="dark"] .swal2-html-container .small {
+            color: var(--text-muted) !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-validation-message {
+            background-color: var(--surface-soft) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-soft) !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-input,
+        html[data-bs-theme="dark"] .swal2-textarea,
+        html[data-bs-theme="dark"] .swal2-select {
+            background-color: var(--surface-soft) !important;
+            border-color: var(--border-soft) !important;
+            color: var(--text-main) !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-confirm,
+        html[data-bs-theme="dark"] .swal2-cancel {
+            color: #ffffff !important;
+            box-shadow: none !important;
+        }
+
+        html[data-bs-theme="dark"] .swal2-timer-progress-bar {
+            background-color: var(--safety-red) !important;
+        }
+
         html[data-bs-theme="dark"] .navbar-logo {
             opacity: 1;
         }
@@ -375,19 +494,11 @@
             <div class="d-flex align-items-center flex-wrap gap-3">
             
             
-                <div class="user-badge px-3 py-1">
-                    <i class="fas fa-user-circle text-warning me-2"></i>
-                    <span>
-                        {{ current_user.username | capitalize }}
-                        ({{ current_user.role | upper }})
-                    </span>
-                </div>
-    
                 <ul class="navbar-nav flex-row flex-wrap align-items-center nav-custom">
             
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'dashboard.admin_dashboard' %}active-link{% endif %}"
-                        href="{{ url_for('dashboard.admin_dashboard') }}">
+                        <a class="nav-link {% if request.endpoint in ['dashboard.admin_dashboard', 'dashboard.operator_dashboard', 'dashboard.viewer_dashboard'] %}active-link{% endif %}"
+                        href="{{ url_for('dashboard.index') }}">
                         Dashboard
                         </a>
                     </li>
@@ -424,8 +535,8 @@
 
                     {% if current_user.role in ['admin', 'operator'] %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'admin.dropdown_options' %}active-link{% endif %}"
-                        href="{{ url_for('admin.dropdown_options') }}">
+                        <a class="nav-link {% if request.endpoint == 'construction_admin.dropdown_options' %}active-link{% endif %}"
+                        href="{{ url_for('construction_admin.dropdown_options') }}">
                         <i class="fas fa-list-check me-1"></i> Dropdown Items
                         </a>
                     </li>
@@ -440,8 +551,8 @@
                     </li>
             
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'admin.audit_log' %}active-link{% endif %}"
-                        href="{{ url_for('admin.audit_log') }}">
+                        <a class="nav-link {% if request.endpoint == 'construction_admin.audit_log' %}active-link{% endif %}"
+                        href="{{ url_for('construction_admin.audit_log') }}">
                         <i class="fas fa-shield-alt me-1"></i> Audit Log
                         </a>
                     </li>
@@ -450,17 +561,63 @@
                 </ul>
             </div>
             
-            <ul class="navbar-nav">
+            <ul class="navbar-nav align-items-lg-center gap-2">
                 <li class="nav-item me-2">
                     <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch to dark mode" title="Toggle dark mode">
                         <i class="fas fa-moon"></i>
                     </button>
                 </li>
+                <li class="nav-item dropdown">
+                    <button class="btn user-menu-toggle dropdown-toggle d-flex align-items-center gap-2"
+                            type="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                        <span class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <span class="text-start d-none d-sm-inline">
+                            <span class="d-block fw-semibold lh-1">{{ current_user.username | capitalize }}</span>
+                            <span class="small opacity-75">{{ current_user.role | upper }}</span>
+                        </span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end user-menu p-0">
+                        <div class="user-menu-header p-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="user-avatar">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <div>
+                                    <div class="fw-bold">{{ current_user.full_name }}</div>
+                                    <div class="small text-muted">@{{ current_user.username }} · {{ current_user.role | upper }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-2">
+                            <a class="dropdown-item rounded" href="{{ url_for('account.profile') }}">
+                                <i class="fas fa-id-card text-primary me-2"></i> My Profile
+                            </a>
+                            <a class="dropdown-item rounded" href="{{ url_for('account.change_password') }}">
+                                <i class="fas fa-key text-warning me-2"></i> Change Password
+                            </a>
+                            <button type="button" class="dropdown-item rounded" id="themeMenuToggle">
+                                <i class="fas fa-circle-half-stroke text-info me-2"></i> Toggle Theme
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <form method="POST" action="{{ url_for('auth.logout') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="dropdown-item rounded logout-btn">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
                 <li class="nav-item">
-                    <form method="POST" action="{{ url_for('auth.logout') }}" class="d-inline">
+                    <form method="POST" action="{{ url_for('auth.logout') }}" class="navbar-logout-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="nav-link logout-btn border-0 bg-transparent">
-                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        <button type="submit" class="navbar-logout-btn" aria-label="Logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
                         </button>
                     </form>
                 </li>
@@ -523,6 +680,14 @@
             });
         }
 
+        const themeMenuToggle = document.getElementById('themeMenuToggle');
+        if (themeMenuToggle) {
+            themeMenuToggle.addEventListener('click', function() {
+                const currentTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+                setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+            });
+        }
+
         document.querySelectorAll('.modal').forEach(function(modal) {
             if (modal.parentElement !== document.body) {
                 document.body.appendChild(modal);
@@ -567,6 +732,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
-

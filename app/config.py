@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 
 class Config:
@@ -17,3 +17,4 @@ class Config:
     SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') != 'development' and os.environ.get('FLASK_DEBUG') != '1'
     SESSION_COOKIE_HTTPONLY = True 
     SESSION_COOKIE_SAMESITE = 'Lax'
+
