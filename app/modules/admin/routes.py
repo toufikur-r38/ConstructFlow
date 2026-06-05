@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.extensions import db, limiter
 from app.models import User
 from app.utils.decorators import admin_required
+from app.utils.pagination import get_pagination_args
 
 
 admin_bp = Blueprint('admin', __name__, template_folder='templates')
@@ -56,8 +57,13 @@ def register():
         flash(f"User '{full_name}' created successfully as {role.upper()}!", "success")
         return redirect(url_for('admin.register'))
 
-    all_users = User.query.all()
-    return render_template('register.html', users=all_users)
+    page, per_page = get_pagination_args(request)
+    pagination = (
+        User.query
+        .order_by(User.username.asc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    return render_template('register.html', users=pagination.items, pagination=pagination)
 
 
 @admin_bp.route('/edit-user/<int:user_id>', methods=['GET', 'POST'])

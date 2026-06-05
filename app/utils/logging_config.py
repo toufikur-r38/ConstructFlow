@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from flask import has_request_context, request
+from flask import g, has_request_context, request
 from flask_login import current_user
 
 
@@ -11,9 +11,12 @@ class RequestContextFilter(logging.Filter):
         if has_request_context():
             record.method = request.method
             record.path = request.path
-            record.remote_addr = request.headers.get('X-Forwarded-For', request.remote_addr) or '-'
+            record.remote_addr = request.remote_addr or '-'
             record.endpoint = request.endpoint or '-'
-            if current_user and current_user.is_authenticated:
+            if hasattr(g, 'request_user'):
+                record.user = g.request_user
+                record.role = g.request_role
+            elif current_user and current_user.is_authenticated:
                 record.user = current_user.username
                 record.role = current_user.role
             else:

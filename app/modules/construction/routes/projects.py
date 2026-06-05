@@ -4,10 +4,12 @@ from flask_login import login_required, current_user
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import logging
+from sqlalchemy import func
 from app.extensions import db, limiter
-from app.models import Project
+from app.models import CostEntry, Project
 from app.extensions import cache
 from app.utils.decorators import  write_access_required
+from app.utils.pagination import get_pagination_args
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, get_dropdown_options
 projects_bp = Blueprint('projects', __name__, template_folder='../templates')
 
@@ -18,6 +20,7 @@ MAX_FIRM_LEN   = 200
 MAX_TENDER_LEN = 100
 MAX_ADDR_LEN   = 500
 YEAR_PATTERN   = re.compile(r'^\d{4}(?:-\d{4})?$')   # e.g. "2024" or "2023-2024"
+VALID_PROJECT_STATUSES = ('Running', 'Completed', 'On Hold')
 
 def _render_add_project(all_projects):
     return render_template(
@@ -149,11 +152,16 @@ def add_project():
 def view_projects():
     sector_filter = request.args.get('sector_filter')
     search_query = request.args.get('search')
+    status_filter = request.args.get('status_filter', 'all').strip()
+    page, per_page = get_pagination_args(request)
     
     query = Project.query.filter_by(is_void=False)
 
     if sector_filter and sector_filter != 'all':
         query = query.filter(Project.sector == sector_filter)
+
+    if status_filter in VALID_PROJECT_STATUSES:
+        query = query.filter(Project.status == status_filter)
     
     if search_query:
         query = query.filter(
@@ -161,7 +169,41 @@ def view_projects():
             (Project.firm_name.ilike(f'%{search_query}%'))
         )
 
-    all_projects = query.order_by(Project.logged_at.desc()).all()
+    pagination = query.order_by(Project.logged_at.desc()).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+    all_projects = pagination.items
+
+    project_ids = [project.id for project in all_projects]
+    spent_by_project = {}
+    if project_ids:
+        spent_rows = (
+            db.session.query(
+                CostEntry.project_id,
+                func.coalesce(func.sum(CostEntry.total_amount), 0).label('spent')
+            )
+            .filter(
+                CostEntry.is_void == False,
+                CostEntry.project_id.in_(project_ids)
+            )
+            .group_by(CostEntry.project_id)
+            .all()
+        )
+        spent_by_project = {project_id: spent or Decimal('0') for project_id, spent in spent_rows}
+
+    project_financials = {}
+    for project in all_projects:
+        budget = project.contract_price or Decimal('0')
+        spent = spent_by_project.get(project.id, Decimal('0'))
+        left = budget - spent
+        percent = round((spent / budget * 100), 1) if budget > 0 else 0
+        project_financials[project.id] = {
+            'spent': spent,
+            'left': left,
+            'percent': percent,
+        }
     
     available_sectors = db.session.query(Project.sector)\
         .filter(Project.is_void == False)\
@@ -173,4 +215,7 @@ def view_projects():
     
     return render_template('view_projects.html', 
                            projects=all_projects, 
-                           sectors=sectors_list)
+                           sectors=sectors_list,
+                           statuses=VALID_PROJECT_STATUSES,
+                           project_financials=project_financials,
+                           pagination=pagination)

@@ -62,7 +62,7 @@
     }
 
     .custom-table td {
-        padding: 18px 15px;
+        padding: 16px 12px;
         border-top: 1px solid var(--table-border);
         border-bottom: 1px solid var(--table-border);
         vertical-align: middle;
@@ -70,6 +70,86 @@
 
     .custom-table td:first-child { border-left: 1px solid var(--table-border); border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
     .custom-table td:last-child { border-right: 1px solid var(--table-border); border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+
+    .project-ledger-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .project-ledger-table th:nth-child(1) { width: 20%; }
+    .project-ledger-table th:nth-child(2) { width: 16%; }
+    .project-ledger-table th:nth-child(3) { width: 12%; }
+    .project-ledger-table th:nth-child(4) { width: 18%; }
+    .project-ledger-table th:nth-child(5) { width: 20%; }
+    .project-ledger-table th:nth-child(6) { width: 8%; }
+    .project-ledger-table th:nth-child(7) { width: 6%; }
+
+    .project-ledger-table td {
+        overflow-wrap: anywhere;
+    }
+
+    .budget-monitor-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        line-height: 1.35;
+    }
+
+    .budget-monitor-row span {
+        color: #718096;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .budget-monitor-row strong {
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    .project-ledger-table tbody td:nth-child(6),
+    .project-ledger-table tbody td:nth-child(7),
+    .project-ledger-table tbody td:nth-child(8) {
+        display: none;
+    }
+
+    .budget-monitor-cell > div.fw-bold.contract-price-cell {
+        display: none;
+    }
+
+    .budget-monitor-cell::before {
+        color: #0f766e;
+        content: "Budget " attr(data-budget);
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 800;
+        line-height: 1.45;
+    }
+
+    .budget-monitor-cell::after {
+        color: #4a5568;
+        content: "Spent " attr(data-spent) "\A Left " attr(data-left) "\A Used " attr(data-used);
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        line-height: 1.45;
+        margin-top: 4px;
+        white-space: pre-line;
+    }
+
+    .budget-monitor-cell::before,
+    .budget-monitor-cell::after {
+        content: none;
+        display: none;
+    }
+
+    .budget-monitor-cell strong.contract-price-cell {
+        display: block;
+    }
+
+    .budget-monitor-progress {
+        height: 7px;
+    }
 
     .contract-price-cell {
         color: #0f766e;
@@ -94,7 +174,7 @@
 <div class="ledger-container">
     <div class="mb-4 mt-2 d-flex justify-content-between align-items-end">
         <div>
-            <h3 class="fw-bold mb-1" style="color: var(--navy);">Master Project Ledger</h3>
+            <h3 class="fw-bold mb-1" style="color: var(--navy);">Project Ledger</h3>
             <p class="text-muted small mb-0">Comprehensive record of all registered construction projects</p>
         </div>
             <a href="{{ url_for('projects.add_project') }}" class="btn btn-dark fw-bold shadow-sm">
@@ -103,43 +183,58 @@
     </div>
 
     <div class="filter-node mb-4">
-        <div class="row g-3">
-            <div class="col-md-4">
+        <form method="GET" action="{{ url_for('projects.view_projects') }}">
+            <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Search</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="generalSearch" class="form-control form-control-custom border-start-0" placeholder="Project or Firm Name...">
+                    <input type="text" id="generalSearch" name="search" class="form-control form-control-custom border-start-0" value="{{ request.args.get('search', '') }}" placeholder="Project or Firm Name...">
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Sector</label>
-                <select id="sectorFilter" class="form-select form-control-custom">
+                <select id="sectorFilter" name="sector_filter" class="form-select form-control-custom">
                     <option value="all">All Sectors</option>
                     {% for sector in sectors %}
-                        <option value="{{ sector }}">{{ sector }}</option>
+                        <option value="{{ sector }}" {% if request.args.get('sector_filter') == sector %}selected{% endif %}>{{ sector }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted text-uppercase">NOA Date Search</label>
-                <input type="text" id="noaSearch" class="form-control form-control-custom" placeholder="e.g. 2025-05">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">Status</label>
+                <select id="statusFilter" name="status_filter" class="form-select form-control-custom">
+                    <option value="all">All Statuses</option>
+                    {% for status in statuses %}
+                        <option value="{{ status }}" {% if request.args.get('status_filter') == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark fw-bold flex-fill">
+                    <i class="fas fa-filter me-1"></i> Apply
+                </button>
+                <a href="{{ url_for('projects.view_projects', per_page=pagination.per_page if pagination else 25) }}" class="btn btn-outline-danger fw-bold flex-fill">
+                    <i class="fas fa-times me-1"></i> Reset
+                </a>
             </div>
         </div>
+        </form>
     </div>
 
     <div class="table-responsive">
-        <table class="table custom-table" id="projectTable">
+        <table class="table custom-table project-ledger-table" id="projectTable">
             <thead>
                 <tr>
                     <th>Project & Sector</th>
-                    <th>Firm Name</th>
-                    <th>Tender ID</th>
-                    <th>NOA Date</th>
-                    <th>Work Year</th>
+                    <th>Firm & Tender</th>
+                    <th>NOA Date & WorkYear</th>
                     <th>Address</th>
-                    <th>Contract Price</th>
+                    <th>Budget Monitor</th>
                     <th>Status</th>
                     {% if current_user.role in ['admin', 'operator'] %}
                     <th class="text-end">Actions</th>
@@ -148,6 +243,7 @@
             </thead>
             <tbody>
                 {% for p in projects %}
+                {% set finance = project_financials.get(p.id) %}
                 <tr class="project-row {% if p.is_void %}row-voided{% endif %}" data-sector="{{ p.sector }}">
                     <td>
                         <div class="fw-bold text-dark project-name">{{ p.project_name }}</div>
@@ -156,29 +252,96 @@
                         </div>
                     </td>
 
-                    <td class="firm-name small fw-semibold text-secondary">
-                        {{ p.firm_name or '---' }}
-                    </td>
-
-                    <td>
+                    <td class="small">
+                        <div class="firm-name fw-semibold text-secondary">{{ p.firm_name or '---' }}</div>
                         <code class="text-primary small fw-bold">{{ p.tender_id or 'N/A' }}</code>
                     </td>
 
-                    <td class="noa-date-val small fw-bold text-dark">
-                        {{ p.noa_date or 'Pending' }}
+                    <td class="small">
+                        <div class="fw-bold text-dark">{{ p.noa_date or 'Pending' }}</div>
+                        <div class="fw-semibold text-secondary">{{ p.work_order_year or '---' }}</div>
                     </td>
 
-                    <td class="small fw-semibold text-secondary">
-                        {{ p.work_order_year or '---' }}
-                    </td>
-
-                    <td class="small text-muted" style="min-width: 180px;">
+                    <td class="small text-muted">
                         {{ p.address or '---' }}
                     </td>
 
-                    <td>
+                    {% set used_percent = finance.percent if finance else 0 %}
+                    <td class="budget-monitor-cell"
+                        data-budget="BDT {{ '{:,.2f}'.format(p.contract_price or 0) }}"
+                        data-spent="BDT {{ '{:,.2f}'.format(finance.spent if finance else 0) }}"
+                        data-left="BDT {{ '{:,.2f}'.format(finance.left if finance else p.contract_price or 0) }}"
+                        data-used="{{ '{:,.1f}'.format(used_percent) }}%">
+                        <div class="budget-monitor-row">
+                            <span>Budget</span>
+                            <strong class="contract-price-cell">BDT {{ "{:,.2f}".format(p.contract_price or 0) }}</strong>
+                        </div>
+                        <div class="budget-monitor-row">
+                            <span>Spent</span>
+                            <strong class="text-danger">BDT {{ "{:,.2f}".format(finance.spent if finance else 0) }}</strong>
+                        </div>
+                        <div class="budget-monitor-row mb-2">
+                            <span>Left</span>
+                            <strong class="{{ 'text-danger' if finance and finance.left < 0 else 'text-success' }}">BDT {{ "{:,.2f}".format(finance.left if finance else p.contract_price or 0) }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold {{ 'text-danger' if used_percent >= 90 else 'text-warning' if used_percent >= 70 else 'text-success' }}">
+                                {{ "{:,.1f}".format(used_percent) }}%
+                            </span>
+                            {% if finance and finance.left < 0 %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger">OVER</span>
+                            {% endif %}
+                        </div>
+                        <div class="progress budget-monitor-progress">
+                            <div class="progress-bar {{ 'bg-danger' if used_percent >= 90 else 'bg-warning' if used_percent >= 70 else 'bg-success' }}"
+                                 role="progressbar"
+                                 data-progress-width="{{ [used_percent, 100] | min }}"
+                                 aria-valuenow="{{ [used_percent, 100] | min }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"></div>
+                        </div>
                         <div class="fw-bold contract-price-cell">
                             ৳ {{ "{:,.2f}".format(p.contract_price or 0) }}
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="fw-bold text-danger">
+                            ৳ {{ "{:,.2f}".format(finance.spent if finance else 0) }}
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="fw-bold {{ 'text-danger' if finance and finance.left < 0 else 'text-success' }}">
+                            ৳ {{ "{:,.2f}".format(finance.left if finance else p.contract_price or 0) }}
+                        </div>
+                    </td>
+
+                    <td style="min-width: 130px;">
+                        {% set used_percent = finance.percent if finance else 0 %}
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold {{ 'text-danger' if used_percent >= 90 else 'text-warning' if used_percent >= 70 else 'text-success' }}">
+                                {{ "{:,.1f}".format(used_percent) }}%
+                            </span>
+                            {% if finance and finance.left < 0 %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger">OVER</span>
+                            {% endif %}
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar 
+                                {% if used_percent >= 90 %}
+                                    bg-danger
+                                {% elif used_percent >= 70 %}
+                                    bg-warning
+                                {% else %}
+                                    bg-success
+                                 {% endif %}"
+                                 role="progressbar"
+                                 data-progress-width="{{ [used_percent, 100] | min }}"
+                                 aria-valuenow="{{ [used_percent, 100] | min }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                            </div>
                         </div>
                     </td>
 
@@ -216,12 +379,14 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="{% if current_user.role in ['admin', 'operator'] %}9{% else %}8{% endif %}" class="text-center py-5 text-muted">No projects found.</td>
+                    <td colspan="{% if current_user.role in ['admin', 'operator'] %}7{% else %}6{% endif %}" class="text-center py-5 text-muted">No projects found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% set pagination_label = 'projects' %}
+    {% include "_pagination.html" %}
 </div>
 
 <div class="modal fade" id="voidProjectModal" tabindex="-1" aria-hidden="true">
@@ -256,6 +421,12 @@
 </div>
 
 <script>
+    document.querySelectorAll('.progress-bar[data-progress-width]').forEach(function(bar) {
+        const rawWidth = Number.parseFloat(bar.dataset.progressWidth);
+        const safeWidth = Number.isFinite(rawWidth) ? Math.min(100, Math.max(0, rawWidth)) : 0;
+        bar.style.width = `${safeWidth}%`;
+    });
+
     // --- Void Modal Logic ---
     function openVoidModal(button) {
         const modal = new bootstrap.Modal(document.getElementById('voidProjectModal'));
@@ -267,37 +438,6 @@
         document.querySelector('#voidProjectModal .modal-title').textContent = `Delete: ${projectName}`;
         modal.show();
     }
-
-    // --- Search & Filter Logic ---
-    document.addEventListener('DOMContentLoaded', function() {
-        const generalSearch = document.getElementById('generalSearch');
-        const sectorFilter = document.getElementById('sectorFilter');
-        const noaSearch = document.getElementById('noaSearch');
-        const rows = document.querySelectorAll('.project-row');
-
-        function filterTable() {
-            const searchText = generalSearch.value.toLowerCase();
-            const sectorValue = sectorFilter.value.toLowerCase();
-            const noaValue = noaSearch.value.toLowerCase();
-
-            rows.forEach(row => {
-                const projectName = row.querySelector('.project-name').textContent.toLowerCase();
-                const firmName = row.querySelector('.firm-name').textContent.toLowerCase();
-                const sectorText = row.getAttribute('data-sector') ? row.getAttribute('data-sector').toLowerCase() : '';
-                const noaDate = row.querySelector('.noa-date-val').textContent.toLowerCase();
-
-                const matchesGeneral = projectName.includes(searchText) || firmName.includes(searchText);
-                const matchesSector = (sectorValue === 'all') || (sectorText === sectorValue);
-                const matchesNoa = noaDate.includes(noaValue);
-
-                row.style.display = (matchesGeneral && matchesSector && matchesNoa) ? "" : "none";
-            });
-        }
-
-        generalSearch.addEventListener('input', filterTable);
-        sectorFilter.addEventListener('change', filterTable);
-        noaSearch.addEventListener('input', filterTable);
-    });
 </script>
 
 {% endblock %}

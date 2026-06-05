@@ -101,7 +101,7 @@
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-secondary text-white p-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold"><i class="fas fa-users-cog me-2"></i>User Accounts Ledger</h6>
-                    <span class="badge bg-light text-dark">Total Users: {{ users|length if users else 0 }}</span>
+                    <span class="badge bg-light text-dark">Total Users: {{ pagination.total if pagination else users|length if users else 0 }}</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -171,6 +171,10 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                    <div class="px-3 pb-2">
+                        {% set pagination_label = 'users' %}
+                        {% include "_pagination.html" %}
                     </div>
                 </div>
             </div>

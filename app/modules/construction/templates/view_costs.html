@@ -33,13 +33,17 @@
         <h3 class="fw-bold mb-0" style="color: var(--navy);">Expenditure Ledger</h3>
         <p class="text-muted small mb-0">Records sorted by Date (Oldest to Newest)</p>
     </div>
-    <a href="{{ url_for('costs.download_pdf', **request.args) }}" class="btn btn-outline-danger fw-bold shadow-sm" id="downloadPdfBtn">
+    <a href="{{ url_for('costs.download_pdf', **request.args) }}"
+       class="btn btn-outline-danger fw-bold shadow-sm"
+       id="downloadPdfBtn"
+       data-result-count="{{ pagination.total if pagination else 0 }}">
         <i class="fas fa-file-pdf me-1"></i> Download PDF
     </a>
 </div>
 
 <div class="card p-3 mb-4 shadow-sm bg-white border-0 rounded-3">
     <form class="row g-2 align-items-end" method="GET" action="{{ url_for('costs.view_costs') }}" id="filterForm">
+        <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
         
         <div class="col-md-3">
             <label class="form-label small fw-bold text-muted text-uppercase mb-1">Project</label>
@@ -172,6 +176,8 @@
     </div>
     {% endif %}
 </div>
+{% set pagination_label = 'cost entries' %}
+{% include "_pagination.html" %}
 
 <div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -301,15 +307,21 @@
                 const categoryText = categoryValue || 'All Categories';
                 const fromText = startDate || 'All Time';
                 const toText = endDate || 'All Time';
+                const resultCount = Number(downloadPdfBtn.dataset.resultCount || 0).toLocaleString();
+                const broadExportWarning = !projectValue
+                    ? '<div class="alert alert-warning py-2 px-3 mt-3 mb-0"><strong>All Projects selected.</strong> This can create a large report. Use Project or Date filters when you only need one ledger.</div>'
+                    : '';
 
                 Swal.fire({
-                    title: 'Generate PDF?',
+                    title: 'Generate PDF Report?',
                     html: `
                         <div class="text-start small">
                             <div><strong>Project:</strong> ${projectText}</div>
                             <div><strong>Category:</strong> ${categoryText}</div>
                             <div><strong>From Date:</strong> ${fromText}</div>
                             <div><strong>To Date:</strong> ${toText}</div>
+                            <div><strong>Matching Records:</strong> ${resultCount}</div>
+                            ${broadExportWarning}
                         </div>
                     `,
                     icon: 'question',

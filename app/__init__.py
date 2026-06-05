@@ -1,10 +1,12 @@
 from flask import Flask, redirect, url_for, flash, request, g
+from flask_login import current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 import json
 import time
+from urllib.parse import urlencode
 from .config import Config
-from .extensions import db, login_manager, csrf, cache, limiter
+from .extensions import db, login_manager, csrf, cache, limiter, migrate
 from .utils.logging_config import configure_logging
 
 
@@ -28,6 +30,7 @@ def create_app():
     login_manager.init_app(app)
     csrf.init_app(app)
     cache.init_app(app)
+    migrate.init_app(app, db)
     limiter.init_app(app)
 
     # Login settings
@@ -43,8 +46,22 @@ def create_app():
             return json.loads(value)
         except (ValueError, TypeError):
             return {}
+
+    @app.template_global()
+    def page_url(page, per_page=None):
+        args = request.args.to_dict(flat=False)
+        args['page'] = [str(page)]
+        if per_page is not None:
+            args['per_page'] = [str(per_page)]
+
+        query_string = urlencode(args, doseq=True)
+        base_url = url_for(request.endpoint, **(request.view_args or {}))
+        return f"{base_url}?{query_string}" if query_string else base_url
+
     # Import models
     from . import models
+    from .cli import register_cli_commands
+    register_cli_commands(app)
     # Register blueprints
     from .modules.account.routes import account_bp
     from .modules.auth.routes import auth_bp
@@ -78,6 +95,12 @@ def create_app():
     @app.before_request
     def start_request_timer():
         g.request_started_at = time.perf_counter()
+        if current_user and current_user.is_authenticated:
+            g.request_user = current_user.username
+            g.request_role = current_user.role
+        else:
+            g.request_user = 'anonymous'
+            g.request_role = '-'
 
     # Security headers
     @app.after_request
@@ -94,6 +117,21 @@ def create_app():
 
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+        response.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "img-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://code.jquery.com; "
+            "font-src 'self' data: https://cdnjs.cloudflare.com; "
+            "connect-src 'self'; "
+            "frame-ancestors 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
+        if not app.config.get('IS_DEVELOPMENT'):
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
 
     return app

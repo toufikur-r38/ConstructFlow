@@ -138,7 +138,6 @@
                                     <th>Work Order Year</th>
                                     <th>Contract Price</th>
                                     <th>Address</th>
-                                    <th>Additional Details</th>
                                     <th>Logged At</th>
                                     <th>Logged By</th>
                                 </tr>
@@ -168,9 +167,6 @@
                                         {{ p.address }}
                                     </td>
 
-                                    <td class="small text-start text-muted" style="max-width: 150px; white-space: normal;">
-                                        {{ p.additional_details or '-' }}
-                                    </td>
 
                                     <td class="small text-secondary font-monospace">
                                         {{ p.logged_at.strftime('%Y-%m-%d %H:%M') if p.logged_at else 'N/A' }}

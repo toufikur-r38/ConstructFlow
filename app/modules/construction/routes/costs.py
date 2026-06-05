@@ -8,6 +8,7 @@ from app.extensions import cache
 from app.utils.decorators import write_access_required
 from app.extensions import db , limiter
 from app.models import Project, CostEntry
+from app.utils.pagination import get_pagination_args
 from app.modules.construction.utils.dropdown_options import COST_TYPE, get_dropdown_options
 from app.modules.construction.utils.generate_costs_pdf import generate_costs_pdf
 
@@ -166,6 +167,7 @@ def view_costs():
     start_date_str = request.args.get('start_date', '').strip()
     end_date_str   = request.args.get('end_date', '').strip()
     effective_end_date = end_date_str
+    page, per_page = get_pagination_args(request)
 
     query = CostEntry.query
 
@@ -199,7 +201,12 @@ def view_costs():
         except ValueError:
             flash("Invalid end date format.", "danger")
 
-    costs = query.filter_by(is_void=False).order_by(CostEntry.date.asc()).all()
+    pagination = query.filter_by(is_void=False).order_by(CostEntry.date.asc()).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+    costs = pagination.items
     all_projects = Project.query.filter_by(is_void=False).all()
 
     available_categories = [row[0] for row in
@@ -214,7 +221,8 @@ def view_costs():
                            costs=costs,
                            projects=all_projects,
                            categories=available_categories,
-                           effective_end_date=effective_end_date)
+                           effective_end_date=effective_end_date,
+                           pagination=pagination)
 
 
 
@@ -249,17 +257,28 @@ def download_pdf():
 
     if cost_type:
         query = query.filter(CostEntry.cost_type == cost_type)
+    parsed_start = None
+    parsed_end = None
+
     if start_date_str:
         try:
-            query = query.filter(CostEntry.date >= datetime.strptime(start_date_str, '%Y-%m-%d').date())
+            parsed_start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            query = query.filter(CostEntry.date >= parsed_start)
         except ValueError:
-            pass
+            flash("Invalid start date selected for PDF export.", "danger")
+            return redirect(url_for('costs.view_costs'))
     if end_date_str:
         try:
-            query = query.filter(CostEntry.date <= datetime.strptime(end_date_str, '%Y-%m-%d').date())
+            parsed_end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            query = query.filter(CostEntry.date <= parsed_end)
         except ValueError:
-            pass
-        
+            flash("Invalid end date selected for PDF export.", "danger")
+            return redirect(url_for('costs.view_costs'))
+
+    if parsed_start and parsed_end and parsed_end < parsed_start:
+        flash("PDF export end date cannot be before start date.", "danger")
+        return redirect(url_for('costs.view_costs'))
+
     costs = query.filter_by(is_void=False).order_by(CostEntry.date.asc()).all()
     pdf_bytes = generate_costs_pdf(
         costs=costs,

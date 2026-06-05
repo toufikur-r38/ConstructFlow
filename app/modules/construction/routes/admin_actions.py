@@ -10,6 +10,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from app.extensions import cache
 from app.utils.decorators import admin_required, write_access_required
+from app.utils.pagination import DEFAULT_LOG_PER_PAGE, get_pagination_args
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, COST_TYPE, get_dropdown_options
 construction_admin_bp = Blueprint('construction_admin', __name__, template_folder='../templates')
 
@@ -536,31 +537,53 @@ def audit_log():
 @login_required
 @admin_required
 def all_removed_projects():
-    voided_projects = Project.query.filter_by(is_void=True).all()
-    return render_template('all_removed_projects.html', projects=voided_projects)
+    page, per_page = get_pagination_args(request)
+    pagination = (
+        Project.query
+        .filter_by(is_void=True)
+        .order_by(Project.id.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    return render_template('all_removed_projects.html', projects=pagination.items, pagination=pagination)
 
 @construction_admin_bp.route('/all-removed-costs')
 @login_required
 @admin_required
 def all_removed_costs():
-    voided_costs = CostEntry.query.filter_by(is_void=True).all()
-    return render_template('all_removed_costs.html', costs=voided_costs)
+    page, per_page = get_pagination_args(request)
+    pagination = (
+        CostEntry.query
+        .filter_by(is_void=True)
+        .order_by(CostEntry.date.desc(), CostEntry.id.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    return render_template('all_removed_costs.html', costs=pagination.items, pagination=pagination)
 
 @construction_admin_bp.route('/all-edited-costs')
 @login_required
 @admin_required
 def all_edited_costs():
     # Fetch all logs, order by newest first
-    edited_costs = EditLog.query.order_by(EditLog.changed_at.desc()).all()
-    return render_template('all_edited_costs.html', edited_costs=edited_costs)
+    page, per_page = get_pagination_args(request, DEFAULT_LOG_PER_PAGE)
+    pagination = (
+        EditLog.query
+        .order_by(EditLog.changed_at.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    return render_template('all_edited_costs.html', edited_costs=pagination.items, pagination=pagination)
 
 @construction_admin_bp.route('/all-edited-projects')
 @login_required
 @admin_required
 def all_edited_projects():
     # Fetch all logs, order by newest first
-    edited_projects = ProjectEditLog.query.order_by(ProjectEditLog.changed_at.desc()).all()
-    return render_template('all_edited_projects.html', edited_projects=edited_projects)
+    page, per_page = get_pagination_args(request, DEFAULT_LOG_PER_PAGE)
+    pagination = (
+        ProjectEditLog.query
+        .order_by(ProjectEditLog.changed_at.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    return render_template('all_edited_projects.html', edited_projects=pagination.items, pagination=pagination)
 
 
 @construction_admin_bp.route('/dropdown-options', methods=['GET', 'POST'])
