@@ -151,7 +151,7 @@ def add_project():
 @login_required
 def view_projects():
     sector_filter = request.args.get('sector_filter')
-    search_query = request.args.get('search')
+    search_query = request.args.get('search', '').strip()
     status_filter = request.args.get('status_filter', 'all').strip()
     page, per_page = get_pagination_args(request)
     
@@ -166,7 +166,8 @@ def view_projects():
     if search_query:
         query = query.filter(
             (Project.project_name.ilike(f'%{search_query}%')) | 
-            (Project.firm_name.ilike(f'%{search_query}%'))
+            (Project.firm_name.ilike(f'%{search_query}%')) |
+            (Project.tender_id.ilike(f'%{search_query}%'))
         )
 
     pagination = query.order_by(Project.logged_at.desc()).paginate(

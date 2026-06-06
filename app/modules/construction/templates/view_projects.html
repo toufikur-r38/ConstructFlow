@@ -61,6 +61,24 @@
         background-color: #fcfdfe;
     }
 
+    .project-row[data-view-url] {
+        cursor: pointer;
+    }
+
+    .project-row[data-view-url]:focus {
+        outline: 2px solid rgba(26, 42, 108, 0.35);
+        outline-offset: 2px;
+    }
+
+    .project-filter-trigger {
+        cursor: pointer;
+    }
+
+    .project-filter-trigger:hover,
+    .project-filter-trigger:focus {
+        text-decoration: underline;
+    }
+
     .custom-table td {
         padding: 16px 12px;
         border-top: 1px solid var(--table-border);
@@ -183,20 +201,20 @@
     </div>
 
     <div class="filter-node mb-4">
-        <form method="GET" action="{{ url_for('projects.view_projects') }}">
+        <form method="GET" action="{{ url_for('projects.view_projects') }}" id="projectFilterForm">
             <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Search</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="generalSearch" name="search" class="form-control form-control-custom border-start-0" value="{{ request.args.get('search', '') }}" placeholder="Project or Firm Name...">
+                    <input type="text" id="generalSearch" name="search" class="form-control form-control-custom border-start-0" value="{{ request.args.get('search', '') }}" placeholder="Project, Firm, or Tender ID...">
                 </div>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Sector</label>
-                <select id="sectorFilter" name="sector_filter" class="form-select form-control-custom">
+                <select id="sectorFilter" name="sector_filter" class="form-select form-control-custom" onchange="this.form.submit()">
                     <option value="all">All Sectors</option>
                     {% for sector in sectors %}
                         <option value="{{ sector }}" {% if request.args.get('sector_filter') == sector %}selected{% endif %}>{{ sector }}</option>
@@ -206,7 +224,7 @@
 
             <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">Status</label>
-                <select id="statusFilter" name="status_filter" class="form-select form-control-custom">
+                <select id="statusFilter" name="status_filter" class="form-select form-control-custom" onchange="this.form.submit()">
                     <option value="all">All Statuses</option>
                     {% for status in statuses %}
                         <option value="{{ status }}" {% if request.args.get('status_filter') == status %}selected{% endif %}>{{ status }}</option>
@@ -214,12 +232,10 @@
                 </select>
             </div>
 
-            <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-dark fw-bold flex-fill">
-                    <i class="fas fa-filter me-1"></i> Apply
-                </button>
-                <a href="{{ url_for('projects.view_projects', per_page=pagination.per_page if pagination else 25) }}" class="btn btn-outline-danger fw-bold flex-fill">
-                    <i class="fas fa-times me-1"></i> Reset
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted text-uppercase d-block">&nbsp;</label>
+                <a href="{{ url_for('projects.view_projects', per_page=pagination.per_page if pagination else 25) }}" class="btn btn-outline-danger fw-bold w-100">
+                    <i class="fas fa-times me-1"></i> Reset Filters
                 </a>
             </div>
         </div>
@@ -244,7 +260,11 @@
             <tbody>
                 {% for p in projects %}
                 {% set finance = project_financials.get(p.id) %}
-                <tr class="project-row {% if p.is_void %}row-voided{% endif %}" data-sector="{{ p.sector }}">
+                <tr class="project-row {% if p.is_void %}row-voided{% endif %}"
+                    data-sector="{{ p.sector }}"
+                    data-view-url="{{ url_for('costs.view_costs', project_filter=p.id) }}"
+                    tabindex="0"
+                    title="Open cost ledger for {{ p.project_name }}">
                     <td>
                         <div class="fw-bold text-dark project-name">{{ p.project_name }}</div>
                         <div class="text-muted x-small text-uppercase fw-bold sector-text" style="font-size: 0.7rem;">
@@ -253,8 +273,24 @@
                     </td>
 
                     <td class="small">
-                        <div class="firm-name fw-semibold text-secondary">{{ p.firm_name or '---' }}</div>
-                        <code class="text-primary small fw-bold">{{ p.tender_id or 'N/A' }}</code>
+                        {% if p.firm_name %}
+                        <div class="firm-name fw-semibold text-secondary project-filter-trigger"
+                             role="button"
+                             tabindex="0"
+                             data-project-search="{{ p.firm_name }}"
+                             title="Filter by firm">{{ p.firm_name }}</div>
+                        {% else %}
+                        <div class="firm-name fw-semibold text-secondary">---</div>
+                        {% endif %}
+                        {% if p.tender_id %}
+                        <code class="text-primary small fw-bold project-filter-trigger"
+                              role="button"
+                              tabindex="0"
+                              data-project-search="{{ p.tender_id }}"
+                              title="Filter by Tender ID">{{ p.tender_id }}</code>
+                        {% else %}
+                        <code class="text-primary small fw-bold">N/A</code>
+                        {% endif %}
                     </td>
 
                     <td class="small">
@@ -425,6 +461,80 @@
         const rawWidth = Number.parseFloat(bar.dataset.progressWidth);
         const safeWidth = Number.isFinite(rawWidth) ? Math.min(100, Math.max(0, rawWidth)) : 0;
         bar.style.width = `${safeWidth}%`;
+    });
+
+    const projectFilterForm = document.getElementById('projectFilterForm');
+    const projectSearchInput = document.getElementById('generalSearch');
+    let projectSearchTimer;
+    let pendingProjectSearchSubmit = false;
+
+    if (projectFilterForm && projectSearchInput) {
+        projectSearchInput.addEventListener('input', function() {
+            pendingProjectSearchSubmit = true;
+            window.clearTimeout(projectSearchTimer);
+            projectSearchTimer = window.setTimeout(function() {
+                pendingProjectSearchSubmit = false;
+                projectFilterForm.submit();
+            }, 550);
+        });
+
+        projectSearchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                pendingProjectSearchSubmit = false;
+                window.clearTimeout(projectSearchTimer);
+                event.preventDefault();
+                projectFilterForm.submit();
+            }
+        });
+
+        projectSearchInput.addEventListener('blur', function() {
+            window.clearTimeout(projectSearchTimer);
+            if (pendingProjectSearchSubmit) {
+                pendingProjectSearchSubmit = false;
+                projectFilterForm.submit();
+            }
+        });
+    }
+
+    document.querySelectorAll('.project-filter-trigger[data-project-search]').forEach(function(trigger) {
+        function applyProjectSearch(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!projectFilterForm || !projectSearchInput) {
+                return;
+            }
+
+            projectSearchInput.value = trigger.dataset.projectSearch || '';
+            projectFilterForm.submit();
+        }
+
+        trigger.addEventListener('click', applyProjectSearch);
+        trigger.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                applyProjectSearch(event);
+            }
+        });
+    });
+
+    document.querySelectorAll('.project-row[data-view-url]').forEach(function(row) {
+        const interactiveSelector = 'a, button, input, select, textarea, label, form, .btn-group, .project-filter-trigger';
+
+        function openProjectLedger(event) {
+            if (event.target.closest(interactiveSelector)) {
+                return;
+            }
+
+            window.location.href = row.dataset.viewUrl;
+        }
+
+        row.addEventListener('click', openProjectLedger);
+        row.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openProjectLedger(event);
+            }
+        });
     });
 
     // --- Void Modal Logic ---

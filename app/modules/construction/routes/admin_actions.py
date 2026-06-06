@@ -20,6 +20,8 @@ OPTION_TYPE_LABELS = {
     COST_TYPE: 'Cost Type',
 }
 
+PROJECT_VOID_REMARK_PREFIX = "[PROJECT VOIDED]"
+
 
 def _render_edit_project(project, auth_error=False):
     return render_template(
@@ -42,6 +44,19 @@ def _render_edit_cost(entry, projects=None, auth_error=False):
 
 def _password_matches_current_user(field_name='confirm_password'):
     return check_password_hash(current_user.password, request.form.get(field_name, ''))
+
+
+def _project_voided_remark(remark):
+    return f"{PROJECT_VOID_REMARK_PREFIX} {remark or ''}".strip()
+
+
+def _restore_project_voided_remark(remark):
+    if remark == PROJECT_VOID_REMARK_PREFIX:
+        return None
+    if remark and remark.startswith(f"{PROJECT_VOID_REMARK_PREFIX} "):
+        restored = remark.replace(f"{PROJECT_VOID_REMARK_PREFIX} ", "", 1)
+        return restored or None
+    return remark
 
 
 
@@ -85,11 +100,18 @@ def void_project(project_id):
         
         
         void_count = 0
+        voided_cost_snapshots = []
         for entry in project.costs:
             if not entry.is_void:
+                voided_cost_snapshots.append({
+                    "id": entry.id,
+                    "remarks": entry.remarks,
+                })
                 entry.is_void = True
-                entry.remarks = f"[PROJECT VOIDED] {entry.remarks or ''}".strip()
+                entry.remarks = _project_voided_remark(entry.remarks)
                 void_count += 1
+
+        before_data["voided_costs"] = voided_cost_snapshots
 
         deletion_log = ProjectDeletedLog(
             project_id=project.id,
@@ -126,17 +148,42 @@ def restore_project(id):
         flash("Authentication failed. Incorrect password. No changes were made.", "danger")
         return redirect(url_for('construction_admin.all_removed_projects'))
 
+    deleted_log = (
+        ProjectDeletedLog.query
+        .filter_by(project_id=id)
+        .order_by(ProjectDeletedLog.deleted_at.desc())
+        .first()
+    )
+    original_cost_remarks = {}
+    if deleted_log:
+        try:
+            project_snapshot = json.loads(deleted_log.project_snapshot or '{}')
+        except (TypeError, json.JSONDecodeError):
+            project_snapshot = {}
+
+        for cost_snapshot in project_snapshot.get("voided_costs", []):
+            cost_id = cost_snapshot.get("id")
+            if cost_id is not None:
+                original_cost_remarks[int(cost_id)] = cost_snapshot.get("remarks")
+
     project.is_void = False
-    
+
     restored_costs_count = 0
     for entry in project.costs:
-        if entry.is_void and entry.remarks and entry.remarks.startswith("[PROJECT VOIDED]"):
+        has_saved_remark = entry.id in original_cost_remarks
+        has_project_void_tag = (
+            not original_cost_remarks
+            and bool(entry.remarks and entry.remarks.startswith(PROJECT_VOID_REMARK_PREFIX))
+        )
+        if entry.is_void and (has_saved_remark or has_project_void_tag):
             entry.is_void = False
-            # Remove the void tag so it looks perfectly normal again
-            entry.remarks = entry.remarks.replace("[PROJECT VOIDED] ", "", 1)
+            entry.remarks = (
+                original_cost_remarks[entry.id]
+                if has_saved_remark
+                else _restore_project_voided_remark(entry.remarks)
+            )
             restored_costs_count += 1
-            
-    deleted_log = ProjectDeletedLog.query.filter_by(project_id=id).first()
+
     if deleted_log:
         db.session.delete(deleted_log)
         
@@ -160,6 +207,7 @@ def _project_snapshot(project: Project) -> dict:
         "firm_name":         project.firm_name,
         "tender_id":         project.tender_id,
         "noa_date":          project.noa_date.isoformat() if project.noa_date else None,
+        "completion_date":   project.completion_date.isoformat() if project.completion_date else None,
         "work_order_year":   project.work_order_year,
         "status":            project.status,
         "contract_price":    str(project.contract_price),   # Decimal → str for JSON
@@ -191,6 +239,7 @@ def edit_project(project_id):
         additional_details = request.form.get('additional_details', '').strip()
         status             = request.form.get('status', '').strip()
         noa_str            = request.form.get('noa_date', '').strip()
+        completion_str     = request.form.get('completion_date', '').strip()
         price_str          = request.form.get('contract_price', '').strip()
  
  
@@ -214,6 +263,21 @@ def edit_project(project_id):
             except ValueError:
                 flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
                 return _render_edit_project(project)
+
+        parsed_completion = None
+        if completion_str:
+            try:
+                parsed_completion = datetime.strptime(completion_str, '%Y-%m-%d').date()
+            except ValueError:
+                flash("Invalid completion date format. Please use YYYY-MM-DD.", "danger")
+                return _render_edit_project(project)
+
+        if status == 'Completed' and not parsed_completion:
+            flash("Completion date is required when project status is Completed.", "danger")
+            return _render_edit_project(project)
+
+        if status != 'Completed':
+            parsed_completion = None
  
         parsed_price = Decimal('0')
         if price_str:
@@ -233,6 +297,7 @@ def edit_project(project_id):
         project.firm_name          = firm_name
         project.tender_id          = tender_id
         project.noa_date           = parsed_noa
+        project.completion_date    = parsed_completion
         project.work_order_year    = work_order_year
         project.status             = status
         project.contract_price     = parsed_price
@@ -353,8 +418,8 @@ def restore_cost(id):
 
     cost.is_void = False
     
-    if cost.remarks and cost.remarks.startswith("[PROJECT VOIDED] "):
-        cost.remarks = cost.remarks.replace("[PROJECT VOIDED] ", "", 1)
+    if cost.remarks and cost.remarks.startswith(PROJECT_VOID_REMARK_PREFIX):
+        cost.remarks = _restore_project_voided_remark(cost.remarks)
     deleted_log = DeletedLog.query.filter_by(cost_id=id).first()
     if deleted_log:
         db.session.delete(deleted_log)
@@ -427,16 +492,14 @@ def edit_cost(cost_id):
  
         try:
             parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
-            if parsed_qty < 0:
-                raise ValueError("Quantity cannot be negative.")
-        except (InvalidOperation, ValueError):
-            flash("Invalid quantity. Please enter a positive number.", "danger")
+        except InvalidOperation:
+            flash("Invalid quantity. Please enter a valid number.", "danger")
             return _render_edit_cost(entry)
  
         try:
             parsed_rate = Decimal(rate_str) if rate_str else Decimal('0')
-        except (InvalidOperation):
-            flash("Invalid unit rate. Please enter a positive number.", "danger")
+        except InvalidOperation:
+            flash("Invalid unit rate. Please enter a valid number.", "danger")
             return _render_edit_cost(entry)
  
         parsed_total = parsed_qty * parsed_rate

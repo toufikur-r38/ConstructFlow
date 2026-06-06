@@ -239,8 +239,15 @@ def generate_costs_pdf(costs, project=None, cost_type_filter='',
             [Paragraph("<b>NOA Date</b>",        label_s), Paragraph(str(project.noa_date) if project.noa_date else '\u2014', value_s)],
             [Paragraph("<b>Work Order Year</b>", label_s), Paragraph(_txt(project.work_order_year),    value_s)],
             [Paragraph("<b>Project Status</b>",  label_s), Paragraph(_txt(project.status),             value_s)],
-            [Paragraph("<b>Remarks</b>",         label_s), Paragraph(_txt(project.additional_details), value_s)],
         ]
+        if project.status == 'Completed':
+            scope_data.append([
+                Paragraph("<b>Completion Date</b>", label_s),
+                Paragraph(str(project.completion_date) if project.completion_date else '\u2014', value_s),
+            ])
+        scope_data.append(
+            [Paragraph("<b>Remarks</b>", label_s), Paragraph(_txt(project.additional_details), value_s)]
+        )
     else:
         unique_projects = len(set(c.project_id for c in costs))
         scope_data += [
@@ -274,31 +281,43 @@ def generate_costs_pdf(costs, project=None, cost_type_filter='',
     story.append(Spacer(1, 6*mm))
 
     # ── Financial Summary ─────────────────────────────────────────────────
-    total_spent = sum(float(c.total_amount or 0) for c in costs)
+    filtered_total = sum(float(c.total_amount or 0) for c in costs)
 
     if is_single:
-        budget    = float(project.contract_price or 0)
-        remaining = budget - total_spent
-        percent   = _pct(total_spent, budget)
+        has_detail_filters = bool(cost_type_filter or start_date or end_date)
 
-        rem_color = '#2e7d32' if remaining >= 0 else '#e63946'
-        pct_color = '#2e7d32' if percent < 80 else ('#e65100' if percent < 100 else '#e63946')
+        if has_detail_filters:
+            fin_data = [[
+                Paragraph(
+                    f"<font size='8' color='grey'>Filtered Records</font><br/>"
+                    f"<b>{len(costs)}</b>", normal),
+                Paragraph(
+                    f"<font size='8' color='grey'>Filtered Expenditure</font><br/>"
+                    f"<b><font color='#e63946'>{_fmt(filtered_total)}</font></b>", normal),
+            ]]
+            fin_table = Table(fin_data, colWidths=[85*mm, 85*mm])
+        else:
+            budget = float(project.contract_price or 0)
+            remaining = budget - filtered_total
+            percent = _pct(filtered_total, budget)
+            rem_color = '#2e7d32' if remaining >= 0 else '#e63946'
+            pct_color = '#2e7d32' if percent < 80 else ('#e65100' if percent < 100 else '#e63946')
 
-        fin_data = [[
-            Paragraph(
-                f"<font size='8' color='grey'>Contract Price</font><br/>"
-                f"<b>{_fmt(budget)}</b>", normal),
-            Paragraph(
-                f"<font size='8' color='grey'>Total Spent</font><br/>"
-                f"<b><font color='#e63946'>{_fmt(total_spent)}</font></b>", normal),
-            Paragraph(
-                f"<font size='8' color='grey'>Remaining</font><br/>"
-                f"<b><font color='{rem_color}'>{_fmt(remaining)}</font></b>", normal),
-            Paragraph(
-                f"<font size='8' color='grey'>Budget Used</font><br/>"
-                f"<b><font color='{pct_color}'>{percent}%</font></b>", normal),
-        ]]
-        fin_table = Table(fin_data, colWidths=[42*mm, 42*mm, 42*mm, 42*mm])
+            fin_data = [[
+                Paragraph(
+                    f"<font size='8' color='grey'>Contract Price</font><br/>"
+                    f"<b>{_fmt(budget)}</b>", normal),
+                Paragraph(
+                    f"<font size='8' color='grey'>Total Spent</font><br/>"
+                    f"<b><font color='#e63946'>{_fmt(filtered_total)}</font></b>", normal),
+                Paragraph(
+                    f"<font size='8' color='grey'>Budget Left</font><br/>"
+                    f"<b><font color='{rem_color}'>{_fmt(remaining)}</font></b>", normal),
+                Paragraph(
+                    f"<font size='8' color='grey'>Budget Used</font><br/>"
+                    f"<b><font color='{pct_color}'>{percent}%</font></b>", normal),
+            ]]
+            fin_table = Table(fin_data, colWidths=[42*mm, 42*mm, 42*mm, 42*mm])
     else:
         fin_data = [[
             Paragraph(
@@ -306,7 +325,7 @@ def generate_costs_pdf(costs, project=None, cost_type_filter='',
                 f"<b>{len(costs)}</b>", normal),
             Paragraph(
                 f"<font size='8' color='grey'>Total Expenditure</font><br/>"
-                f"<b><font color='#e63946'>{_fmt(total_spent)}</font></b>", normal),
+                f"<b><font color='#e63946'>{_fmt(filtered_total)}</font></b>", normal),
         ]]
         fin_table = Table(fin_data, colWidths=[85*mm, 85*mm])
 
@@ -396,7 +415,7 @@ def generate_costs_pdf(costs, project=None, cost_type_filter='',
         [Paragraph('', cell_s)] * (n_cols - 2) + [
             Paragraph("<b>Grand Total</b>",
                       S('GT',  fontSize=8, fontName='Helvetica-Bold', alignment=TA_RIGHT)),
-            Paragraph(f"<b>{_fmt(total_spent)}</b>",
+            Paragraph(f"<b>{_fmt(filtered_total)}</b>",
                       S('GTV', fontSize=8, fontName='Helvetica-Bold',
                         textColor=RED, alignment=TA_RIGHT)),
         ]

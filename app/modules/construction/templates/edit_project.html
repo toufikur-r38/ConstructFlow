@@ -81,10 +81,20 @@
                             
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-bold">Project Status</label>
-                                <select name="status" class="form-select">
+                                <select name="status" id="projectStatus" class="form-select">
                                     <option value="Running" {% if project.status == 'Running' %}selected{% endif %}>Running</option>
                                     <option value="Completed" {% if project.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                    <option value="On Hold" {% if project.status == 'On Hold' %}selected{% endif %}>On Hold</option>
                                 </select>
+                            </div>
+
+                            <div class="col-md-3 mb-3" id="completionDateGroup">
+                                <label class="form-label fw-bold">Completion Date <span class="text-danger">*</span></label>
+                                <input type="date"
+                                       name="completion_date"
+                                       id="completionDate"
+                                       class="form-control"
+                                       value="{{ project.completion_date or '' }}">
                             </div>
 
                             <div class="col-12 mb-4">
@@ -156,6 +166,22 @@
             });
         });
     }
+
+    const statusSelect = document.getElementById('projectStatus');
+    const completionDateGroup = document.getElementById('completionDateGroup');
+    const completionDateInput = document.getElementById('completionDate');
+
+    function syncCompletionDateField() {
+        const isCompleted = statusSelect.value === 'Completed';
+        completionDateGroup.style.display = isCompleted ? '' : 'none';
+        completionDateInput.required = isCompleted;
+        if (!isCompleted) {
+            completionDateInput.value = '';
+        }
+    }
+
+    statusSelect.addEventListener('change', syncCompletionDateField);
+    syncCompletionDateField();
 
     // --- Normal Confirmation Alert ---
     document.getElementById('editProjectForm').addEventListener('submit', function (e) {

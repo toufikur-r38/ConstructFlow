@@ -39,6 +39,7 @@ class Project(db.Model):
     address = db.Column(db.String(500))
     additional_details = db.Column(db.Text) # Changed to Text for large data
     status = db.Column(db.String(20), default='Running', index=True, nullable=False)
+    completion_date = db.Column(db.Date, nullable=True, index=True)
     is_void = db.Column(db.Boolean, default=False, index=True, nullable=False)
     logged_at = db.Column(db.DateTime, default=lambda: datetime.now(BD_TZ).replace(tzinfo=None))
     

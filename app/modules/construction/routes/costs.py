@@ -25,16 +25,52 @@ def _today_bd():
     return datetime.now(BD_TZ).date()
  
  
-def _render_add_cost():
-    projects = (
+def _running_project_choices():
+    return (
         Project.query
-        .filter(Project.is_void == False, Project.status.in_(['Running', 'Completed']))
+        .filter(Project.is_void == False, Project.status == 'Running')
         .order_by(Project.project_name.asc())
         .all()
     )
+
+
+def _project_filter_choices(selected_project=None):
+    projects = _running_project_choices()
+    if selected_project and all(project.id != selected_project.id for project in projects):
+        projects.append(selected_project)
+    return projects
+
+
+def _selected_project_from_filter(project_id):
+    try:
+        parsed_project_id = int(project_id)
+    except (TypeError, ValueError):
+        raise ValueError("Invalid project filter selected.")
+
+    project = db.session.get(Project, parsed_project_id)
+    if not project or project.is_void:
+        raise ValueError("Selected project does not exist or has been voided.")
+
+    return project
+
+
+def _visible_cost_query(selected_project=None):
+    query = (
+        CostEntry.query
+        .join(Project, CostEntry.project_id == Project.id)
+        .filter(CostEntry.is_void == False, Project.is_void == False)
+    )
+    if selected_project:
+        return query.filter(CostEntry.project_id == selected_project.id)
+    return query.filter(Project.status == 'Running')
+
+
+def _render_add_cost(late_project=None):
+    projects = [late_project] if late_project else _running_project_choices()
     recent_costs = (
         CostEntry.query
-        .filter_by(is_void=False)
+        .join(Project, CostEntry.project_id == Project.id)
+        .filter(CostEntry.is_void == False, Project.is_void == False, Project.status == 'Running')
         .order_by(CostEntry.logged_at.desc())
         .limit(15)
         .all()
@@ -45,6 +81,11 @@ def _render_add_cost():
         recent_costs=recent_costs,
         cost_types=get_dropdown_options(COST_TYPE),
         current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        late_project=late_project,
+        form_action=(
+            url_for('costs.add_late_cost', project_id=late_project.id)
+            if late_project else url_for('costs.add_cost')
+        ),
     )
  
  
@@ -87,8 +128,8 @@ def add_cost():
             flash("Selected project does not exist or has been voided.", "danger")
             return _render_add_cost()
  
-        if target_project.status not in ['Running', 'Completed']:
-            flash("Costs can only be added to running or completed projects.", "danger")
+        if target_project.status != 'Running':
+            flash("Costs can only be added to running projects.", "danger")
             return _render_add_cost()
  
         # Cost type — required, length cap
@@ -106,10 +147,8 @@ def add_cost():
  
         try:
             parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
-            if parsed_qty < 0:
-                raise ValueError("Quantity cannot be negative.")
-        except (InvalidOperation, ValueError):
-            flash("Invalid quantity. Please enter a positive number.", "danger")
+        except InvalidOperation:
+            flash("Invalid quantity. Please enter a valid number.", "danger")
             return _render_add_cost()
  
         try:
@@ -159,6 +198,104 @@ def add_cost():
  
     return _render_add_cost()
 
+
+@costs_bp.route('/add-late-cost/<int:project_id>', methods=['GET', 'POST'])
+@login_required
+@write_access_required
+@limiter.limit("10 per minute")
+def add_late_cost(project_id):
+    project = db.session.get(Project, project_id)
+    if not project or project.is_void:
+        flash("Selected project does not exist or has been voided.", "danger")
+        return redirect(url_for('costs.view_costs'))
+
+    if project.status != 'Completed':
+        flash("Late costs are only needed for completed projects.", "warning")
+        return redirect(url_for('costs.view_costs', project_filter=project.id))
+
+    if request.method == 'POST':
+        date_str  = request.form.get('date', '').strip()
+        cost_type = request.form.get('cost_type', '').strip()
+        qty_str   = request.form.get('quantity', '').strip()
+        rate_str  = request.form.get('unit_rate', '').strip()
+        remarks   = request.form.get('remarks', '').strip()
+
+        if not date_str:
+            flash("Date is required.", "danger")
+            return _render_add_cost(late_project=project)
+
+        try:
+            parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
+            return _render_add_cost(late_project=project)
+
+        if not cost_type:
+            flash("Cost type is required.", "danger")
+            return _render_add_cost(late_project=project)
+
+        if len(cost_type) > MAX_COST_TYPE_LEN:
+            flash(f"Cost type must be {MAX_COST_TYPE_LEN} characters or fewer.", "danger")
+            return _render_add_cost(late_project=project)
+
+        if cost_type not in get_dropdown_options(COST_TYPE):
+            flash("Please select a valid cost type from the managed dropdown list.", "danger")
+            return _render_add_cost(late_project=project)
+
+        try:
+            parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
+        except InvalidOperation:
+            flash("Invalid quantity. Please enter a valid number.", "danger")
+            return _render_add_cost(late_project=project)
+
+        try:
+            parsed_rate = Decimal(rate_str) if rate_str else Decimal('0')
+        except InvalidOperation:
+            flash("Invalid unit rate. Please enter a valid number.", "danger")
+            return _render_add_cost(late_project=project)
+
+        if len(remarks) > MAX_REMARKS_LEN:
+            flash(f"Remarks must be {MAX_REMARKS_LEN} characters or fewer.", "danger")
+            return _render_add_cost(late_project=project)
+
+        if not remarks:
+            flash("A clear remark is required for late costs on completed projects.", "danger")
+            return _render_add_cost(late_project=project)
+
+        parsed_total = parsed_qty * parsed_rate
+
+        new_entry = CostEntry(
+            project_id=project.id,
+            date=parsed_date,
+            cost_type=cost_type,
+            quantity=parsed_qty,
+            unit_rate=parsed_rate,
+            total_amount=parsed_total,
+            remarks=remarks,
+            user_id=current_user.id,
+        )
+        db.session.add(new_entry)
+
+        try:
+            db.session.commit()
+            cache.delete('dashboard_math_data')
+        except Exception as e:
+            db.session.rollback()
+            logging.error(
+                f"DB ERROR saving late cost entry by '{current_user.username}': {e}"
+            )
+            flash("A database error occurred. The late entry was not saved.", "danger")
+            return _render_add_cost(late_project=project)
+
+        logging.info(
+            f"User '{current_user.username}' added late cost entry - "
+            f"Project: '{project.project_name}', Type: {cost_type}, Total: {parsed_total}"
+        )
+        flash("Late cost entry saved successfully!", "success")
+        return redirect(url_for('costs.view_costs', project_filter=project.id))
+
+    return _render_add_cost(late_project=project)
+
 @costs_bp.route('/view-costs')
 @login_required
 def view_costs():
@@ -169,18 +306,16 @@ def view_costs():
     effective_end_date = end_date_str
     page, per_page = get_pagination_args(request)
 
-    query = CostEntry.query
+    selected_project = None
 
     # Project filter — only apply if a real value was selected
     if project_id:
         try:
-            parsed_project_id = int(project_id)
-        except (TypeError, ValueError):
-            flash("Invalid project filter selected.", "danger")
-            parsed_project_id = None
+            selected_project = _selected_project_from_filter(project_id)
+        except ValueError as exc:
+            flash(str(exc), "danger")
 
-        if parsed_project_id is not None:
-            query = query.filter(CostEntry.project_id == parsed_project_id)
+    query = _visible_cost_query(selected_project)
 
     # Category filter — only apply if not empty
     if cost_type:
@@ -201,17 +336,17 @@ def view_costs():
         except ValueError:
             flash("Invalid end date format.", "danger")
 
-    pagination = query.filter_by(is_void=False).order_by(CostEntry.date.asc()).paginate(
+    pagination = query.order_by(CostEntry.date.asc()).paginate(
         page=page,
         per_page=per_page,
         error_out=False
     )
     costs = pagination.items
-    all_projects = Project.query.filter_by(is_void=False).all()
+    project_choices = _project_filter_choices(selected_project)
 
+    category_query = _visible_cost_query(selected_project)
     available_categories = [row[0] for row in
-        db.session.query(CostEntry.cost_type)
-        .filter(CostEntry.is_void == False)
+        category_query.with_entities(CostEntry.cost_type)
         .distinct()
         .order_by(CostEntry.cost_type.asc())
         .all()
@@ -219,7 +354,8 @@ def view_costs():
 
     return render_template('view_costs.html',
                            costs=costs,
-                           projects=all_projects,
+                           projects=project_choices,
+                           selected_project=selected_project,
                            categories=available_categories,
                            effective_end_date=effective_end_date,
                            pagination=pagination)
@@ -234,7 +370,6 @@ def download_pdf():
     start_date_str = request.args.get('start_date', '').strip()
     end_date_str   = request.args.get('end_date', '').strip()
     effective_end_date = end_date_str
-    query = CostEntry.query
     project = None
 
     if not any([project_id, cost_type, start_date_str, end_date_str]):
@@ -243,17 +378,12 @@ def download_pdf():
 
     if project_id:
         try:
-            parsed_project_id = int(project_id)
-        except (TypeError, ValueError):
-            flash("Invalid project selected for PDF export.", "danger")
+            project = _selected_project_from_filter(project_id)
+        except ValueError as exc:
+            flash(str(exc), "danger")
             return redirect(url_for('costs.view_costs'))
 
-        project = db.session.get(Project, parsed_project_id)
-        if not project or project.is_void:
-            flash("Selected project does not exist or has been voided.", "danger")
-            return redirect(url_for('costs.view_costs'))
-
-        query = query.filter(CostEntry.project_id == parsed_project_id)
+    query = _visible_cost_query(project)
 
     if cost_type:
         query = query.filter(CostEntry.cost_type == cost_type)
@@ -279,7 +409,7 @@ def download_pdf():
         flash("PDF export end date cannot be before start date.", "danger")
         return redirect(url_for('costs.view_costs'))
 
-    costs = query.filter_by(is_void=False).order_by(CostEntry.date.asc()).all()
+    costs = query.order_by(CostEntry.date.asc()).all()
     pdf_bytes = generate_costs_pdf(
         costs=costs,
         project=project,

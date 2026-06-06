@@ -33,12 +33,20 @@
         <h3 class="fw-bold mb-0" style="color: var(--navy);">Expenditure Ledger</h3>
         <p class="text-muted small mb-0">Records sorted by Date (Oldest to Newest)</p>
     </div>
-    <a href="{{ url_for('costs.download_pdf', **request.args) }}"
-       class="btn btn-outline-danger fw-bold shadow-sm"
-       id="downloadPdfBtn"
-       data-result-count="{{ pagination.total if pagination else 0 }}">
-        <i class="fas fa-file-pdf me-1"></i> Download PDF
-    </a>
+    <div class="d-flex gap-2">
+        {% if selected_project and selected_project.status == 'Completed' and current_user.role in ['admin', 'operator'] %}
+        <a href="{{ url_for('costs.add_late_cost', project_id=selected_project.id) }}"
+           class="btn btn-warning fw-bold shadow-sm">
+            <i class="fas fa-plus-circle me-1"></i> Add Late Cost
+        </a>
+        {% endif %}
+        <a href="{{ url_for('costs.download_pdf', **request.args) }}"
+           class="btn btn-outline-danger fw-bold shadow-sm"
+           id="downloadPdfBtn"
+           data-result-count="{{ pagination.total if pagination else 0 }}">
+            <i class="fas fa-file-pdf me-1"></i> Download PDF
+        </a>
+    </div>
 </div>
 
 <div class="card p-3 mb-4 shadow-sm bg-white border-0 rounded-3">
@@ -52,7 +60,7 @@
                 {% for project in projects %}
                 <option value="{{ project.id }}" 
                     {% if request.args.get('project_filter') == project.id|string %}selected{% endif %}>
-                    {{ project.project_name }}
+                    {{ project.project_name }}{% if project.status != 'Running' %} ({{ project.status }}){% endif %}
                 </option>
                 {% endfor %}
             </select>
