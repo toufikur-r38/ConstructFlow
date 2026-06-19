@@ -8,6 +8,7 @@ from app.extensions import cache
 from app.utils.decorators import write_access_required
 from app.extensions import db , limiter
 from app.models import Project, CostEntry
+from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import get_pagination_args
 from app.modules.construction.utils.dropdown_options import COST_TYPE, get_dropdown_options
 from app.modules.construction.utils.generate_costs_pdf import generate_costs_pdf
@@ -19,6 +20,10 @@ costs_bp = Blueprint('costs', __name__, template_folder='../templates')
 MAX_COST_TYPE_LEN = 50
 MAX_REMARKS_LEN   = 500
 BD_TZ = timezone(timedelta(hours=6))
+COST_TEXT_LIMITS = (
+    ("Cost type", MAX_COST_TYPE_LEN),
+    ("Remarks", MAX_REMARKS_LEN),
+)
 
 
 def _today_bd():
@@ -65,7 +70,7 @@ def _visible_cost_query(selected_project=None):
     return query.filter(Project.status == 'Running')
 
 
-def _render_add_cost(late_project=None):
+def _render_add_cost(late_project=None, form_data=None):
     projects = [late_project] if late_project else _running_project_choices()
     recent_costs = (
         CostEntry.query
@@ -82,6 +87,7 @@ def _render_add_cost(late_project=None):
         cost_types=get_dropdown_options(COST_TYPE),
         current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         late_project=late_project,
+        form_data=form_data,
         form_action=(
             url_for('costs.add_late_cost', project_id=late_project.id)
             if late_project else url_for('costs.add_cost')
@@ -108,59 +114,59 @@ def add_cost():
         #  Date — required, must be valid
         if not date_str:
             flash("Date is required.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         try:
             parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
             flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         # must be a valid integer pointing to a real running project
         try:
             parsed_project_id = int(project_id_str)
         except (ValueError, TypeError):
             flash("Please select a valid project.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         target_project = db.session.get(Project, parsed_project_id)
         if not target_project or target_project.is_void:
             flash("Selected project does not exist or has been voided.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         if target_project.status != 'Running':
             flash("Costs can only be added to running projects.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         # Cost type — required, length cap
         if not cost_type:
             flash("Cost type is required.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         if len(cost_type) > MAX_COST_TYPE_LEN:
             flash(f"Cost type must be {MAX_COST_TYPE_LEN} characters or fewer.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
 
         if cost_type not in get_dropdown_options(COST_TYPE):
             flash("Please select a valid cost type from the managed dropdown list.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         try:
             parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
         except InvalidOperation:
             flash("Invalid quantity. Please enter a valid number.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         try:
             parsed_rate = Decimal(rate_str) if rate_str else Decimal('0')
         except InvalidOperation:
             flash("Invalid unit rate. Please enter a valid number.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         #   Remarks length cap
         if len(remarks) > MAX_REMARKS_LEN:
             flash(f"Remarks must be {MAX_REMARKS_LEN} characters or fewer.", "danger")
-            return _render_add_cost()
+            return _render_add_cost(form_data=request.form)
  
         # Total is always derived — never trusted from the form
         parsed_total = parsed_qty * parsed_rate
@@ -185,8 +191,8 @@ def add_cost():
             logging.error(
                 f"DB ERROR saving cost entry by '{current_user.username}': {e}"
             )
-            flash("A database error occurred. The entry was not saved.", "danger")
-            return _render_add_cost()
+            flash(friendly_database_error(e, "save this cost entry", COST_TEXT_LIMITS), "danger")
+            return _render_add_cost(form_data=request.form)
  
         logging.info(
             f"User '{current_user.username}' added cost entry — "
@@ -222,45 +228,45 @@ def add_late_cost(project_id):
 
         if not date_str:
             flash("Date is required.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         try:
             parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
             flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         if not cost_type:
             flash("Cost type is required.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         if len(cost_type) > MAX_COST_TYPE_LEN:
             flash(f"Cost type must be {MAX_COST_TYPE_LEN} characters or fewer.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         if cost_type not in get_dropdown_options(COST_TYPE):
             flash("Please select a valid cost type from the managed dropdown list.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         try:
             parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
         except InvalidOperation:
             flash("Invalid quantity. Please enter a valid number.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         try:
             parsed_rate = Decimal(rate_str) if rate_str else Decimal('0')
         except InvalidOperation:
             flash("Invalid unit rate. Please enter a valid number.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         if len(remarks) > MAX_REMARKS_LEN:
             flash(f"Remarks must be {MAX_REMARKS_LEN} characters or fewer.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         if not remarks:
             flash("A clear remark is required for late costs on completed projects.", "danger")
-            return _render_add_cost(late_project=project)
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         parsed_total = parsed_qty * parsed_rate
 
@@ -284,8 +290,8 @@ def add_late_cost(project_id):
             logging.error(
                 f"DB ERROR saving late cost entry by '{current_user.username}': {e}"
             )
-            flash("A database error occurred. The late entry was not saved.", "danger")
-            return _render_add_cost(late_project=project)
+            flash(friendly_database_error(e, "save this late cost entry", COST_TEXT_LIMITS), "danger")
+            return _render_add_cost(late_project=project, form_data=request.form)
 
         logging.info(
             f"User '{current_user.username}' added late cost entry - "

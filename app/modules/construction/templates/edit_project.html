@@ -1,5 +1,8 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set form = form_data or {} %}
+{% set selected_sector = form.get('sector', project.sector) %}
+{% set selected_status = form.get('status', project.status) %}
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
@@ -41,7 +44,7 @@
 
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Project Name <span class="text-danger">*</span></label>
-                                <input type="text" name="project_name" class="form-control fw-bold" required value="{{ project.project_name }}">
+                                <input type="text" name="project_name" class="form-control fw-bold" maxlength="200" required value="{{ form.get('project_name', project.project_name) }}">
                             </div>
                             
                             <div class="col-md-4 mb-3">
@@ -49,42 +52,42 @@
                                 <select name="sector" class="form-select search-select" required>
                                     <option value="">Search Sector...</option>
                                     {% for sector in sectors %}
-                                    <option value="{{ sector }}" {% if project.sector == sector %}selected{% endif %}>{{ sector }}</option>
+                                    <option value="{{ sector }}" {% if selected_sector == sector %}selected{% endif %}>{{ sector }}</option>
                                     {% endfor %}
-                                    {% if project.sector and project.sector not in sectors %}
-                                    <option value="{{ project.sector }}" selected>{{ project.sector }}</option>
+                                    {% if selected_sector and selected_sector not in sectors %}
+                                    <option value="{{ selected_sector }}" selected>{{ selected_sector }}</option>
                                     {% endif %}
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Firm Name</label>
-                                <input type="text" name="firm_name" class="form-control" value="{{ project.firm_name or '' }}">
+                                <input type="text" name="firm_name" class="form-control" maxlength="200" value="{{ form.get('firm_name', project.firm_name or '') }}">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Tender ID</label>
-                                <input type="text" name="tender_id" class="form-control" value="{{ project.tender_id or '' }}">
+                                <input type="text" name="tender_id" class="form-control" maxlength="100" value="{{ form.get('tender_id', project.tender_id or '') }}">
                             </div>
 
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-bold">NOA Date</label>
-                                <input type="date" name="noa_date" class="form-control" value="{{ project.noa_date or '' }}">
+                                <input type="date" name="noa_date" class="form-control" value="{{ form.get('noa_date', project.noa_date or '') }}">
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-bold">Work Order Year</label>
-                                <input type="text" name="work_order_year" class="form-control" value="{{ project.work_order_year or '' }}">
+                                <input type="text" name="work_order_year" class="form-control" value="{{ form.get('work_order_year', project.work_order_year or '') }}">
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-bold">Contract Price (৳)</label>
-                                <input type="number" step="0.01" name="contract_price" class="form-control fw-bold text-success" value="{{ project.contract_price or '' }}">
+                                <input type="number" step="0.01" name="contract_price" class="form-control fw-bold text-success" value="{{ form.get('contract_price', project.contract_price or '') }}">
                             </div>
                             
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-bold">Project Status</label>
                                 <select name="status" id="projectStatus" class="form-select">
-                                    <option value="Running" {% if project.status == 'Running' %}selected{% endif %}>Running</option>
-                                    <option value="Completed" {% if project.status == 'Completed' %}selected{% endif %}>Completed</option>
-                                    <option value="On Hold" {% if project.status == 'On Hold' %}selected{% endif %}>On Hold</option>
+                                    <option value="Running" {% if selected_status == 'Running' %}selected{% endif %}>Running</option>
+                                    <option value="Completed" {% if selected_status == 'Completed' %}selected{% endif %}>Completed</option>
+                                    <option value="On Hold" {% if selected_status == 'On Hold' %}selected{% endif %}>On Hold</option>
                                 </select>
                             </div>
 
@@ -94,17 +97,17 @@
                                        name="completion_date"
                                        id="completionDate"
                                        class="form-control"
-                                       value="{{ project.completion_date or '' }}">
+                                       value="{{ form.get('completion_date', project.completion_date or '') }}">
                             </div>
 
                             <div class="col-12 mb-4">
                                 <label class="form-label fw-bold">Full Site Address <span class="text-danger">*</span></label>
-                                <textarea name="address" class="form-control" rows="2" required>{{ project.address }}</textarea>
+                                <textarea name="address" class="form-control" rows="2" maxlength="500" required>{{ form.get('address', project.address) }}</textarea>
                             </div>
 
                             <div class="col-12 mb-4">
                                 <label class="form-label fw-bold">Additional Details</label>
-                                <textarea name="additional_details" class="form-control" rows="2">{{ project.additional_details or '' }}</textarea>
+                                <textarea name="additional_details" class="form-control" rows="2">{{ form.get('additional_details', project.additional_details or '') }}</textarea>
                             </div>
                         </div>
 

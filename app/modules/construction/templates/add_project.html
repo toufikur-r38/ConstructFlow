@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set form = form_data or {} %}
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet"
@@ -58,7 +59,8 @@
 
                 <div class="col-md-5 mb-3">
                     <label class="form-label fw-bold">Project Name <span class="text-danger">*</span></label>
-                    <input type="text" name="project_name" class="form-control" required
+                    <input type="text" name="project_name" class="form-control" maxlength="200" required
+                        value="{{ form.get('project_name', '') }}"
                         placeholder="e.g. AMC Boundary Wall">
                 </div>
 
@@ -67,46 +69,49 @@
                     <select name="sector" class="form-select search-select" required>
                         <option value="">Search Sector...</option>
                         {% for sector in sectors %}
-                        <option value="{{ sector }}">{{ sector }}</option>
+                        <option value="{{ sector }}" {% if form.get('sector') == sector %}selected{% endif %}>{{ sector }}</option>
                         {% endfor %}
                     </select>
                 </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Firm Name</label>
-                                <input type="text" name="firm_name" class="form-control"
+                                <input type="text" name="firm_name" class="form-control" maxlength="200"
+                                    value="{{ form.get('firm_name', '') }}"
                                     placeholder="Contractor / Firm Name">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Tender ID</label>
-                                <input type="text" name="tender_id" class="form-control" placeholder="e.g. 112233445">
+                                <input type="text" name="tender_id" class="form-control" maxlength="100" value="{{ form.get('tender_id', '') }}" placeholder="e.g. 112233445">
                             </div>
 
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">NOA Date</label>
-                                <input type="date" name="noa_date" class="form-control">
+                                <input type="date" name="noa_date" class="form-control" value="{{ form.get('noa_date', '') }}">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Work Order Year</label>
                                 <input type="text" name="work_order_year" class="form-control"
+                                    value="{{ form.get('work_order_year', '') }}"
                                     placeholder="e.g. 2025-2026">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Contract Price (৳)</label>
                                 <input type="number" step="0.01" name="contract_price" class="form-control"
+                                    value="{{ form.get('contract_price', '') }}"
                                     placeholder="0.00">
                             </div>
 
                             <div class="col-12 mb-4">
                                 <label class="form-label fw-bold">Full Site Address <span
                                         class="text-danger">*</span></label>
-                                <textarea name="address" class="form-control" rows="2" required
-                                    placeholder="Enter detailed location..."></textarea>
+                                <textarea name="address" class="form-control" rows="2" maxlength="500" required
+                                    placeholder="Enter detailed location...">{{ form.get('address', '') }}</textarea>
                             </div>
 
                             <div class="col-12 mb-4">
                                 <label class="form-label fw-bold">Additional Details</label>
                                 <textarea name="additional_details" class="form-control" rows="2"
-                                    placeholder="Any extra notes, conditions, or remarks..."></textarea>
+                                    placeholder="Any extra notes, conditions, or remarks...">{{ form.get('additional_details', '') }}</textarea>
                             </div>
                         </div>
 
@@ -285,4 +290,3 @@
     });
 </script>
 {% endblock %}
-

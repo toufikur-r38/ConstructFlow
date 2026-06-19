@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set form = form_data or {} %}
 
 <style>
     .form-control-node {
@@ -52,7 +53,7 @@
                             <label class="form-label small fw-bold text-muted text-uppercase">Username <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-user"></i></span>
-                                <input type="text" name="username" class="form-control form-control-node with-icon" placeholder="e.g. jdoe" required>
+                                <input type="text" name="username" class="form-control form-control-node with-icon" maxlength="50" value="{{ form.get('username', '') }}" placeholder="e.g. jdoe" required>
                             </div>
                         </div>
 
@@ -60,7 +61,7 @@
                             <label class="form-label small fw-bold text-muted text-uppercase">Full Name <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-id-card"></i></span>
-                                <input type="text" name="full_name" class="form-control form-control-node with-icon" placeholder="e.g. John Doe" required>
+                                <input type="text" name="full_name" class="form-control form-control-node with-icon" maxlength="100" value="{{ form.get('full_name', '') }}" placeholder="e.g. John Doe" required>
                             </div>
                         </div>
 
@@ -77,10 +78,10 @@
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-shield-alt"></i></span>
                                 <select name="role" class="form-select form-control-node with-icon" required>
-                                    <option value="" selected disabled>Select a role...</option>
-                                    <option value="admin">Admin (Full Access)</option>
-                                    <option value="operator">Operator (Add Data)</option>
-                                    <option value="viewer">Viewer (Read-Only)</option>
+                                    <option value="" {% if not form.get('role') %}selected{% endif %} disabled>Select a role...</option>
+                                    <option value="admin" {% if form.get('role') == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
+                                    <option value="operator" {% if form.get('role') == 'operator' %}selected{% endif %}>Operator (Add Data)</option>
+                                    <option value="viewer" {% if form.get('role') == 'viewer' %}selected{% endif %}>Viewer (Read-Only)</option>
                                 </select>
                             </div>
                             <div class="form-text text-muted small mt-2">Roles define what the user can see and edit.</div>

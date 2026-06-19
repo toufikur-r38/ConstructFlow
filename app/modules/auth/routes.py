@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy.exc import OperationalError
 from werkzeug.security import check_password_hash
 import logging
 from app.extensions import db, login_manager, limiter
@@ -9,7 +10,14 @@ auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    try:
+        return db.session.get(User, int(user_id))
+    except (TypeError, ValueError):
+        return None
+    except OperationalError:
+        db.session.rollback()
+        logging.warning("Database connection failed while loading user; retrying once.", exc_info=True)
+        return db.session.get(User, int(user_id))
 
 
 
@@ -38,7 +46,7 @@ def login():
         else:
             logging.warning(f"Failed login: Invalid credentials for username '{username}'.")
             flash('Invalid username or password.', 'danger')
-    return render_template('login.html')
+    return render_template('login.html', username=request.form.get('username', '').strip())
 @auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():

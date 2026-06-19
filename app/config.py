@@ -24,6 +24,14 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL or 'sqlite:///' + os.path.join(BASE_DIR, 'construction.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {
+            'pool_pre_ping': True,
+            'pool_recycle': 1800,
+        }
+        if SQLALCHEMY_DATABASE_URI.startswith('postgresql')
+        else {}
+    )
 
     # CACHE ---
     REDIS_URL = os.environ.get('REDIS_URL')

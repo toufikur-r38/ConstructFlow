@@ -10,6 +10,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from app.extensions import cache
 from app.utils.decorators import admin_required, write_access_required
+from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import DEFAULT_LOG_PER_PAGE, get_pagination_args
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, COST_TYPE, get_dropdown_options
 construction_admin_bp = Blueprint('construction_admin', __name__, template_folder='../templates')
@@ -23,22 +24,24 @@ OPTION_TYPE_LABELS = {
 PROJECT_VOID_REMARK_PREFIX = "[PROJECT VOIDED]"
 
 
-def _render_edit_project(project, auth_error=False):
+def _render_edit_project(project, auth_error=False, form_data=None):
     return render_template(
         'edit_project.html',
         project=project,
         auth_error=auth_error,
+        form_data=form_data,
         sectors=get_dropdown_options(PROJECT_SECTOR),
     )
 
 
-def _render_edit_cost(entry, projects=None, auth_error=False):
+def _render_edit_cost(entry, projects=None, auth_error=False, form_data=None):
     return render_template(
         'edit_cost.html',
         entry=entry,
         projects=projects if projects is not None else Project.query.filter_by(is_void=False).all(),
         cost_types=get_dropdown_options(COST_TYPE),
         auth_error=auth_error,
+        form_data=form_data,
     )
 
 
@@ -198,6 +201,24 @@ def restore_project(id):
 
 
 VALID_STATUSES = ['Running', 'Completed', 'On Hold']
+MAX_PROJECT_NAME_LEN = 200
+MAX_PROJECT_SECTOR_LEN = 100
+MAX_PROJECT_FIRM_LEN = 200
+MAX_PROJECT_TENDER_LEN = 100
+MAX_PROJECT_ADDR_LEN = 500
+MAX_COST_TYPE_LEN = 50
+MAX_COST_REMARKS_LEN = 500
+PROJECT_TEXT_LIMITS = (
+    ("Project name", MAX_PROJECT_NAME_LEN),
+    ("Sector", MAX_PROJECT_SECTOR_LEN),
+    ("Firm name", MAX_PROJECT_FIRM_LEN),
+    ("Tender ID", MAX_PROJECT_TENDER_LEN),
+    ("Address", MAX_PROJECT_ADDR_LEN),
+)
+COST_TEXT_LIMITS = (
+    ("Cost type", MAX_COST_TYPE_LEN),
+    ("Remarks", MAX_COST_REMARKS_LEN),
+)
  
  
 def _project_snapshot(project: Project) -> dict:
@@ -226,10 +247,6 @@ def edit_project(project_id):
  
     if request.method == 'POST':
  
-        confirm_password = request.form.get('confirm_password', '')
-        if not check_password_hash(current_user.password, confirm_password):
-            return _render_edit_project(project, auth_error=True)
- 
         project_name       = request.form.get('project_name', '').strip()
         sector             = request.form.get('sector', '').strip()
         firm_name          = request.form.get('firm_name', '').strip()
@@ -245,16 +262,36 @@ def edit_project(project_id):
  
         if not project_name:
             flash("Project name is required.", "danger")
-            return _render_edit_project(project)
+            return _render_edit_project(project, form_data=request.form)
+
+        if len(project_name) > MAX_PROJECT_NAME_LEN:
+            flash(f"Project name must be {MAX_PROJECT_NAME_LEN} characters or fewer.", "danger")
+            return _render_edit_project(project, form_data=request.form)
+
+        if len(sector) > MAX_PROJECT_SECTOR_LEN:
+            flash(f"Sector must be {MAX_PROJECT_SECTOR_LEN} characters or fewer.", "danger")
+            return _render_edit_project(project, form_data=request.form)
+
+        if len(firm_name) > MAX_PROJECT_FIRM_LEN:
+            flash(f"Firm name must be {MAX_PROJECT_FIRM_LEN} characters or fewer.", "danger")
+            return _render_edit_project(project, form_data=request.form)
+
+        if len(tender_id) > MAX_PROJECT_TENDER_LEN:
+            flash(f"Tender ID must be {MAX_PROJECT_TENDER_LEN} characters or fewer.", "danger")
+            return _render_edit_project(project, form_data=request.form)
+
+        if len(address) > MAX_PROJECT_ADDR_LEN:
+            flash(f"Address must be {MAX_PROJECT_ADDR_LEN} characters or fewer.", "danger")
+            return _render_edit_project(project, form_data=request.form)
  
         if status not in VALID_STATUSES:
             flash(f"Invalid status. Allowed values: {', '.join(VALID_STATUSES)}.", "danger")
-            return _render_edit_project(project)
+            return _render_edit_project(project, form_data=request.form)
 
         allowed_sectors = get_dropdown_options(PROJECT_SECTOR)
         if sector not in allowed_sectors and sector != project.sector:
             flash("Please select a valid project sector from the managed dropdown list.", "danger")
-            return _render_edit_project(project)
+            return _render_edit_project(project, form_data=request.form)
  
         parsed_noa = None
         if noa_str:
@@ -262,7 +299,7 @@ def edit_project(project_id):
                 parsed_noa = datetime.strptime(noa_str, '%Y-%m-%d').date()
             except ValueError:
                 flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
-                return _render_edit_project(project)
+                return _render_edit_project(project, form_data=request.form)
 
         parsed_completion = None
         if completion_str:
@@ -270,11 +307,11 @@ def edit_project(project_id):
                 parsed_completion = datetime.strptime(completion_str, '%Y-%m-%d').date()
             except ValueError:
                 flash("Invalid completion date format. Please use YYYY-MM-DD.", "danger")
-                return _render_edit_project(project)
+                return _render_edit_project(project, form_data=request.form)
 
         if status == 'Completed' and not parsed_completion:
             flash("Completion date is required when project status is Completed.", "danger")
-            return _render_edit_project(project)
+            return _render_edit_project(project, form_data=request.form)
 
         if status != 'Completed':
             parsed_completion = None
@@ -287,7 +324,27 @@ def edit_project(project_id):
                     raise ValueError("Price cannot be negative.")
             except (InvalidOperation, ValueError):
                 flash("Invalid contract price. Please enter a positive number.", "danger")
-                return _render_edit_project(project)
+                return _render_edit_project(project, form_data=request.form)
+
+        if (
+            project.project_name == project_name
+            and (project.sector or '') == sector
+            and (project.firm_name or '') == firm_name
+            and (project.tender_id or '') == tender_id
+            and project.noa_date == parsed_noa
+            and (project.work_order_year or '') == work_order_year
+            and (project.address or '') == address
+            and (project.additional_details or '') == additional_details
+            and project.status == status
+            and project.completion_date == parsed_completion
+            and (project.contract_price or Decimal('0')) == parsed_price
+        ):
+            flash("No changes detected. Nothing was updated.", "info")
+            return _render_edit_project(project, form_data=request.form)
+
+        confirm_password = request.form.get('confirm_password', '')
+        if not check_password_hash(current_user.password, confirm_password):
+            return _render_edit_project(project, auth_error=True, form_data=request.form)
  
         before_data   = _project_snapshot(project)
         original_name = project.project_name
@@ -324,8 +381,8 @@ def edit_project(project_id):
                 f"ERROR editing Project ID {project_id} "
                 f"by '{current_user.username}': {e}"
             )
-            flash("A database error occurred. No changes were saved.", "danger")
-            return _render_edit_project(project)
+            flash(friendly_database_error(e, "save your project changes", PROJECT_TEXT_LIMITS), "danger")
+            return _render_edit_project(project, form_data=request.form)
  
         logging.info(
             f"ADMIN ACTION: '{current_user.username}' edited Project ID {project_id} "
@@ -443,10 +500,6 @@ def edit_cost(cost_id):
  
     if request.method == 'POST':
  
-        admin_password = request.form.get('admin_password', '')
-        if not check_password_hash(current_user.password, admin_password):
-            return _render_edit_cost(entry, auth_error=True)
-
         date_str    = request.form.get('date', '').strip()
         project_id_str = request.form.get('project_id', '').strip()
         cost_type   = request.form.get('cost_type', '').strip()
@@ -457,52 +510,76 @@ def edit_cost(cost_id):
  
         if not date_str:
             flash("Date is required.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         try:
             parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
             flash("Invalid date format. Please use YYYY-MM-DD.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         try:
             parsed_project_id = int(project_id_str)
         except (ValueError, TypeError):
             flash("Invalid project selected.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         target_project = db.session.get(Project, parsed_project_id)
         if not target_project:
             flash("Selected project does not exist.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
 
         if target_project.is_void:
             flash("Costs cannot be moved to a voided project. Restore the project first.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         # 2c. Cost type — required
         if not cost_type:
             flash("Cost type is required.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
+
+        if len(cost_type) > MAX_COST_TYPE_LEN:
+            flash(f"Cost type must be {MAX_COST_TYPE_LEN} characters or fewer.", "danger")
+            return _render_edit_cost(entry, form_data=request.form)
+
+        if len(remarks) > MAX_COST_REMARKS_LEN:
+            flash(f"Remarks must be {MAX_COST_REMARKS_LEN} characters or fewer.", "danger")
+            return _render_edit_cost(entry, form_data=request.form)
 
         allowed_cost_types = get_dropdown_options(COST_TYPE)
         if cost_type not in allowed_cost_types and cost_type != entry.cost_type:
             flash("Please select a valid cost type from the managed dropdown list.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         try:
             parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
         except InvalidOperation:
             flash("Invalid quantity. Please enter a valid number.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         try:
             parsed_rate = Decimal(rate_str) if rate_str else Decimal('0')
         except InvalidOperation:
             flash("Invalid unit rate. Please enter a valid number.", "danger")
-            return _render_edit_cost(entry)
+            return _render_edit_cost(entry, form_data=request.form)
  
         parsed_total = parsed_qty * parsed_rate
+
+        if (
+            entry.date == parsed_date
+            and entry.project_id == parsed_project_id
+            and entry.cost_type == cost_type
+            and (entry.quantity or Decimal('0')) == parsed_qty
+            and (entry.unit_rate or Decimal('0')) == parsed_rate
+            and (entry.total_amount or Decimal('0')) == parsed_total
+            and (entry.remarks or '') == remarks
+        ):
+            flash("No changes detected. Nothing was updated.", "info")
+            return _render_edit_cost(entry, form_data=request.form)
+
+        admin_password = request.form.get('admin_password', '')
+        if not check_password_hash(current_user.password, admin_password):
+            return _render_edit_cost(entry, auth_error=True, form_data=request.form)
  
         before_data = {
             "date":         entry.date.strftime('%Y-%m-%d') if entry.date else None,
@@ -552,8 +629,8 @@ def edit_cost(cost_id):
                 f"ERROR editing Cost ID {cost_id} "
                 f"by '{current_user.username}': {e}"
             )
-            flash("A database error occurred. No changes were saved.", "danger")
-            return _render_edit_cost(entry)
+            flash(friendly_database_error(e, "save your cost changes", COST_TEXT_LIMITS), "danger")
+            return _render_edit_cost(entry, form_data=request.form)
  
         logging.info(
             f"ADMIN ACTION: '{current_user.username}' edited Cost ID {cost_id} "
@@ -649,6 +726,18 @@ def all_edited_projects():
     return render_template('all_edited_projects.html', edited_projects=pagination.items, pagination=pagination)
 
 
+def _render_dropdown_options(form_data=None):
+    sectors = DropdownOption.query.filter_by(option_type=PROJECT_SECTOR).order_by(DropdownOption.name.asc()).all()
+    cost_types = DropdownOption.query.filter_by(option_type=COST_TYPE).order_by(DropdownOption.name.asc()).all()
+
+    return render_template(
+        'dropdown_options.html',
+        sectors=sectors,
+        cost_types=cost_types,
+        form_data=form_data,
+    )
+
+
 @construction_admin_bp.route('/dropdown-options', methods=['GET', 'POST'])
 @login_required
 @write_access_required
@@ -659,15 +748,15 @@ def dropdown_options():
 
         if option_type not in OPTION_TYPE_LABELS:
             flash("Invalid dropdown type selected.", "danger")
-            return redirect(url_for('construction_admin.dropdown_options'))
+            return _render_dropdown_options(request.form)
 
         if not name:
             flash("Option name is required.", "danger")
-            return redirect(url_for('construction_admin.dropdown_options'))
+            return _render_dropdown_options(request.form)
 
         if len(name) > 100:
             flash("Option name must be 100 characters or fewer.", "danger")
-            return redirect(url_for('construction_admin.dropdown_options'))
+            return _render_dropdown_options(request.form)
 
         existing = DropdownOption.query.filter(
             DropdownOption.option_type == option_type,
@@ -675,7 +764,7 @@ def dropdown_options():
         ).first()
         if existing:
             flash(f"{OPTION_TYPE_LABELS[option_type]} '{name}' already exists.", "warning")
-            return redirect(url_for('construction_admin.dropdown_options'))
+            return _render_dropdown_options(request.form)
 
         db.session.add(DropdownOption(
             option_type=option_type,
@@ -690,14 +779,7 @@ def dropdown_options():
         flash(f"{OPTION_TYPE_LABELS[option_type]} '{name}' added.", "success")
         return redirect(url_for('construction_admin.dropdown_options'))
 
-    sectors = DropdownOption.query.filter_by(option_type=PROJECT_SECTOR).order_by(DropdownOption.name.asc()).all()
-    cost_types = DropdownOption.query.filter_by(option_type=COST_TYPE).order_by(DropdownOption.name.asc()).all()
-
-    return render_template(
-        'dropdown_options.html',
-        sectors=sectors,
-        cost_types=cost_types,
-    )
+    return _render_dropdown_options()
 
 
 @construction_admin_bp.route('/dropdown-options/<int:option_id>/delete', methods=['POST'])

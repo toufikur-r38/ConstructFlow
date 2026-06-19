@@ -17,6 +17,21 @@ def _password_matches_current_user(field_name='confirm_password'):
     return check_password_hash(current_user.password, request.form.get(field_name, ''))
 
 
+def _render_register(form_data=None):
+    page, per_page = get_pagination_args(request)
+    pagination = (
+        User.query
+        .order_by(User.username.asc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+    return render_template(
+        'register.html',
+        users=pagination.items,
+        pagination=pagination,
+        form_data=form_data,
+    )
+
+
 @admin_bp.route('/register', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -30,17 +45,17 @@ def register():
 
         if not username or not password or not full_name or not role:
             flash("All fields are required.", "danger")
-            return redirect(url_for('admin.register'))
+            return _render_register(request.form)
 
         valid_roles = ['admin', 'operator', 'viewer']
         if role not in valid_roles:
             flash("Invalid role selected.", "danger")
-            return redirect(url_for('admin.register'))
+            return _render_register(request.form)
 
         user_exists = User.query.filter_by(username=username).first()
         if user_exists:
             flash("Username already taken. Please choose another.", "warning")
-            return redirect(url_for('admin.register'))
+            return _render_register(request.form)
 
         hashed_pw = generate_password_hash(password, method='pbkdf2:sha256')
         new_user = User(
@@ -57,13 +72,7 @@ def register():
         flash(f"User '{full_name}' created successfully as {role.upper()}!", "success")
         return redirect(url_for('admin.register'))
 
-    page, per_page = get_pagination_args(request)
-    pagination = (
-        User.query
-        .order_by(User.username.asc())
-        .paginate(page=page, per_page=per_page, error_out=False)
-    )
-    return render_template('register.html', users=pagination.items, pagination=pagination)
+    return _render_register()
 
 
 @admin_bp.route('/edit-user/<int:user_id>', methods=['GET', 'POST'])
@@ -78,7 +87,7 @@ def edit_user(user_id):
     if request.method == 'POST':
         confirm_password = request.form.get('confirm_password', '').strip()
         if not check_password_hash(current_user.password, confirm_password):
-            return render_template('edit_user.html', user=user, auth_error=True)
+            return render_template('edit_user.html', user=user, auth_error=True, form_data=request.form)
 
         full_name = request.form.get('full_name', '').strip()
         if full_name:
@@ -88,7 +97,7 @@ def edit_user(user_id):
         new_role = request.form.get('role')
         if new_role not in valid_roles:
             flash("Invalid role selected.", "danger")
-            return redirect(url_for('admin.edit_user', user_id=user_id))
+            return render_template('edit_user.html', user=user, auth_error=False, form_data=request.form)
 
         if user.id == current_user.id and new_role != 'admin':
             flash("You cannot remove your own Admin privileges.", "warning")
@@ -107,7 +116,7 @@ def edit_user(user_id):
         flash(f"User '{user.full_name}' updated successfully.", "success")
         return redirect(url_for('admin.register'))
 
-    return render_template('edit_user.html', user=user, auth_error=False)
+    return render_template('edit_user.html', user=user, auth_error=False, form_data=None)
 
 
 @admin_bp.route('/toggle-user-status/<int:user_id>', methods=['POST'])

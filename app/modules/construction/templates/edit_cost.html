@@ -1,5 +1,11 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set form = form_data or {} %}
+{% set selected_project_id = form.get('project_id', entry.project_id|string) %}
+{% set selected_cost_type = form.get('cost_type', entry.cost_type) %}
+{% set draft_quantity = form.get('quantity', entry.quantity) %}
+{% set draft_unit_rate = form.get('unit_rate', entry.unit_rate) %}
+{% set draft_total = (draft_quantity|float) * (draft_unit_rate|float) %}
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
@@ -63,7 +69,7 @@
                                 <select name="project_id" class="form-select" required>
                                     <option value="" disabled>Choose project...</option>
                                     {% for project in projects %}
-                                    <option value="{{ project.id }}" {% if entry.project_id == project.id %}selected{% endif %}>
+                                    <option value="{{ project.id }}" {% if selected_project_id == project.id|string %}selected{% endif %}>
                                         {{ project.project_name }}
                                     </option>
                                     {% endfor %}
@@ -73,7 +79,7 @@
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">2. Expense Date <span class="text-danger">*</span></label>
                                 <input type="date" name="date" class="form-control" id="entryDate" 
-                                       value="{{ entry.date.strftime('%Y-%m-%d') if entry.date }}" required>
+                                       value="{{ form.get('date', entry.date.strftime('%Y-%m-%d') if entry.date else '') }}" required>
                             </div>
 
                             <div class="col-md-4">
@@ -81,10 +87,10 @@
                                 <select name="cost_type" class="form-select search-select" required>
                                     <option value="">Search Category...</option>
                                     {% for cat in cost_types %}
-                                    <option value="{{ cat }}" {% if entry.cost_type == cat %}selected{% endif %}>{{ cat }}</option>
+                                    <option value="{{ cat }}" {% if selected_cost_type == cat %}selected{% endif %}>{{ cat }}</option>
                                     {% endfor %}
-                                    {% if entry.cost_type and entry.cost_type not in cost_types %}
-                                    <option value="{{ entry.cost_type }}" selected>{{ entry.cost_type }}</option>
+                                    {% if selected_cost_type and selected_cost_type not in cost_types %}
+                                    <option value="{{ selected_cost_type }}" selected>{{ selected_cost_type }}</option>
                                     {% endif %}
                                 </select>
                             </div>
@@ -92,13 +98,13 @@
                             <div class="col-md-3">
                                 <label class="form-label fw-bold">4. Quantity <span class="text-danger">*</span></label>
                                 <input type="number" id="qty" name="quantity" class="form-control" 
-                                       value="{{ entry.quantity }}" step="any" required>
+                                       value="{{ draft_quantity }}" step="any" required>
                             </div>
                             
                             <div class="col-md-3">
                                 <label class="form-label fw-bold">5. Per Unit Rate (TK) <span class="text-danger">*</span></label>
                                 <input type="number" id="rate" name="unit_rate" class="form-control" 
-                                       value="{{ entry.unit_rate }}" step="any" required>
+                                       value="{{ draft_unit_rate }}" step="any" required>
                             </div>
 
                             <div class="col-md-6">
@@ -111,8 +117,8 @@
 
                             <div class="col-md-10">
                                 <label class="form-label fw-bold">7. Details / Remarks</label>
-                                <input type="text" name="remarks" class="form-control" 
-                                       value="{{ entry.remarks }}" placeholder="e.g. 100 bags Cement, Bill #452">
+                                <input type="text" name="remarks" class="form-control" maxlength="500"
+                                       value="{{ form.get('remarks', entry.remarks or '') }}" placeholder="e.g. 100 bags Cement, Bill #452">
                             </div>
                             <div class="col-md-12 mb-4">
                             <div class="p-3 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25">

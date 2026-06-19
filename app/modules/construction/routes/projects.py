@@ -9,6 +9,7 @@ from app.extensions import db, limiter
 from app.models import CostEntry, Project
 from app.extensions import cache
 from app.utils.decorators import  write_access_required
+from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import get_pagination_args
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, get_dropdown_options
 projects_bp = Blueprint('projects', __name__, template_folder='../templates')
@@ -21,12 +22,20 @@ MAX_TENDER_LEN = 100
 MAX_ADDR_LEN   = 500
 YEAR_PATTERN   = re.compile(r'^\d{4}(?:-\d{4})?$')   # e.g. "2024" or "2023-2024"
 VALID_PROJECT_STATUSES = ('Running', 'Completed', 'On Hold')
+PROJECT_TEXT_LIMITS = (
+    ("Project name", MAX_NAME_LEN),
+    ("Sector", MAX_SECTOR_LEN),
+    ("Firm name", MAX_FIRM_LEN),
+    ("Tender ID", MAX_TENDER_LEN),
+    ("Address", MAX_ADDR_LEN),
+)
 
-def _render_add_project(all_projects):
+def _render_add_project(all_projects, form_data=None):
     return render_template(
         'add_project.html',
         projects=all_projects,
         sectors=get_dropdown_options(PROJECT_SECTOR),
+        form_data=form_data,
     )
  
  
@@ -35,7 +44,12 @@ def _render_add_project(all_projects):
 @write_access_required
 @limiter.limit("20 per minute")
 def add_project():
-    all_projects = Project.query.filter_by(is_void=False).all()
+    all_projects = (
+        Project.query
+        .filter_by(is_void=False)
+        .order_by(Project.logged_at.desc(), Project.id.desc())
+        .all()
+    )
  
     if request.method == 'POST':
  
@@ -52,32 +66,32 @@ def add_project():
       
         if not project_name:
             flash("Project name is required.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         if len(project_name) > MAX_NAME_LEN:
             flash(f"Project name must be {MAX_NAME_LEN} characters or fewer.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         # 2b. Optional text field length caps
         if len(sector) > MAX_SECTOR_LEN:
             flash(f"Sector must be {MAX_SECTOR_LEN} characters or fewer.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
 
         if sector not in get_dropdown_options(PROJECT_SECTOR):
             flash("Please select a valid project sector from the managed dropdown list.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         if len(firm_name) > MAX_FIRM_LEN:
             flash(f"Firm name must be {MAX_FIRM_LEN} characters or fewer.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         if len(tender_id) > MAX_TENDER_LEN:
             flash(f"Tender ID must be {MAX_TENDER_LEN} characters or fewer.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         if len(address) > MAX_ADDR_LEN:
             flash(f"Address must be {MAX_ADDR_LEN} characters or fewer.", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         parsed_noa = None
         if noa_str:
@@ -85,11 +99,11 @@ def add_project():
                 parsed_noa = datetime.strptime(noa_str, '%Y-%m-%d').date()
             except ValueError:
                 flash("Invalid NOA date. Please use YYYY-MM-DD format.", "danger")
-                return _render_add_project(all_projects)
+                return _render_add_project(all_projects, request.form)
  
         if work_order_year and not YEAR_PATTERN.match(work_order_year):
             flash("Work order year must be a 4-digit year (e.g. 2024) or range (e.g. 2023-2024).", "danger")
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         parsed_price = Decimal('0')
         if price_str:
@@ -99,7 +113,7 @@ def add_project():
                     raise ValueError("Price cannot be negative.")
             except (InvalidOperation, ValueError):
                 flash("Invalid contract price. Please enter a positive number.", "danger")
-                return _render_add_project(all_projects)
+                return _render_add_project(all_projects, request.form)
  
         normalized_tender_id = tender_id or None
         duplicate = Project.query.filter(
@@ -112,7 +126,7 @@ def add_project():
                 f"A project named '{project_name}' with Tender ID '{tender_id}' already exists.",
                 "warning"
             )
-            return _render_add_project(all_projects)
+            return _render_add_project(all_projects, request.form)
  
         new_project = Project(
             project_name=project_name,
@@ -136,8 +150,8 @@ def add_project():
             logging.error(
                 f"DB ERROR saving project by '{current_user.username}': {e}"
             )
-            flash("A database error occurred. The project was not saved.", "danger")
-            return _render_add_project(all_projects)
+            flash(friendly_database_error(e, "save this project", PROJECT_TEXT_LIMITS), "danger")
+            return _render_add_project(all_projects, request.form)
  
         logging.info(
             f"User '{current_user.username}' created project "

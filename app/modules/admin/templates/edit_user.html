@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set form = form_data or {} %}
+{% set selected_role = form.get('role', user.role) %}
 
 <style>
     .form-control-node {
@@ -62,7 +64,7 @@
                             <label class="form-label small fw-bold text-muted text-uppercase">Full Name <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-id-card"></i></span>
-                                <input type="text" name="full_name" class="form-control form-control-node with-icon" value="{{ user.full_name }}" required>
+                                <input type="text" name="full_name" class="form-control form-control-node with-icon" maxlength="100" value="{{ form.get('full_name', user.full_name) }}" required>
                             </div>
                         </div>
 
@@ -71,9 +73,9 @@
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-shield-alt"></i></span>
                                 <select name="role" id="userRole" class="form-select form-control-node with-icon" required {% if user.id == current_user.id %}disabled{% endif %}>
-                                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
-                                    <option value="operator" {% if user.role == 'operator' %}selected{% endif %}>Operator (Add Data)</option>
-                                    <option value="viewer" {% if user.role == 'viewer' %}selected{% endif %}>Viewer (Read-Only)</option>
+                                    <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
+                                    <option value="operator" {% if selected_role == 'operator' %}selected{% endif %}>Operator (Add Data)</option>
+                                    <option value="viewer" {% if selected_role == 'viewer' %}selected{% endif %}>Viewer (Read-Only)</option>
                                 </select>
                             </div>
                             {% if user.id == current_user.id %}

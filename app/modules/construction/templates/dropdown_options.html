@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set form = form_data or {} %}
 
 <style>
     .option-card { border-radius: 8px; }
@@ -23,13 +24,13 @@
             <div class="col-md-4">
                 <label class="form-label fw-bold">Dropdown</label>
                 <select name="option_type" class="form-select" id="optionType" required>
-                    <option value="project_sector">Project Sector</option>
-                    <option value="cost_type">Cost Type</option>
+                    <option value="project_sector" {% if form.get('option_type', 'project_sector') == 'project_sector' %}selected{% endif %}>Project Sector</option>
+                    <option value="cost_type" {% if form.get('option_type') == 'cost_type' %}selected{% endif %}>Cost Type</option>
                 </select>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold">New Item</label>
-                <input type="text" name="name" class="form-control" id="optionName" maxlength="100" placeholder="Type item name..." required>
+                <input type="text" name="name" class="form-control" id="optionName" maxlength="100" value="{{ form.get('name', '') }}" placeholder="Type item name..." required>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-success w-100 fw-bold">

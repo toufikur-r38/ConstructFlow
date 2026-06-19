@@ -73,6 +73,9 @@
         .navbar { 
             background-color: var(--navy); 
             border-bottom: 3px solid var(--safety-red); 
+            position: sticky;
+            top: 0;
+            z-index: 1030;
         }
 
         /* The "Glass" Node Effect for Cards */
@@ -726,6 +729,58 @@
             });
 
             input.dataset.toggleReady = 'true';
+        });
+
+        document.querySelectorAll('input[maxlength], textarea[maxlength]').forEach(function(field) {
+            if (field.dataset.counterReady === 'true') {
+                return;
+            }
+
+            const limit = Number.parseInt(field.getAttribute('maxlength'), 10);
+            if (!Number.isFinite(limit) || limit <= 0) {
+                return;
+            }
+
+            const wrapper = field.parentElement && field.parentElement.classList.contains('input-group')
+                ? field.parentElement
+                : document.createElement('div');
+
+            if (wrapper !== field.parentElement) {
+                field.parentNode.insertBefore(wrapper, field);
+                wrapper.appendChild(field);
+            }
+
+            wrapper.classList.add('position-relative');
+            field.classList.add('pe-5');
+
+            if (field.tagName === 'TEXTAREA') {
+                field.style.paddingBottom = '2rem';
+            }
+
+            const counter = document.createElement('span');
+            counter.className = 'position-absolute small char-counter badge rounded-pill bg-light text-muted border shadow-sm';
+            counter.style.right = '0.65rem';
+            counter.style.zIndex = '5';
+            counter.style.pointerEvents = 'none';
+            counter.style.bottom = field.tagName === 'TEXTAREA' ? '0.45rem' : '50%';
+            if (field.tagName !== 'TEXTAREA') {
+                counter.style.transform = 'translateY(50%)';
+            }
+
+            function updateCounter() {
+                const used = field.value.length;
+                counter.textContent = `${used} / ${limit}`;
+                counter.classList.toggle('text-danger', used >= limit);
+                counter.classList.toggle('border-danger', used >= limit);
+                counter.classList.toggle('text-warning', used >= Math.floor(limit * 0.9) && used < limit);
+                counter.classList.toggle('border-warning', used >= Math.floor(limit * 0.9) && used < limit);
+                counter.classList.toggle('text-muted', used < Math.floor(limit * 0.9));
+            }
+
+            wrapper.appendChild(counter);
+            field.addEventListener('input', updateCounter);
+            field.dataset.counterReady = 'true';
+            updateCounter();
         });
     });
 </script>
