@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("account.profile_title") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 
 <div class="row justify-content-center mt-4 mb-5">
@@ -12,7 +13,7 @@
                     </div>
                     <div>
                         <h3 class="mb-1 fw-bold">{{ current_user.full_name }}</h3>
-                        <div class="small opacity-75">@{{ current_user.username }} · {{ current_user.role | upper }}</div>
+                        <div class="small opacity-75">@{{ current_user.username }} · {{ t("admin.super_admin") if current_user.is_super_admin else current_user.role }}</div>
                     </div>
                 </div>
             </div>
@@ -20,29 +21,29 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <div class="p-3 rounded border bg-light h-100">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Full Name</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">{{ t("account.profile_full_name") }}</div>
                             <div class="fw-semibold">{{ current_user.full_name }}</div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="p-3 rounded border bg-light h-100">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Username</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">{{ t("account.profile_username") }}</div>
                             <div class="fw-semibold">{{ current_user.username }}</div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="p-3 rounded border bg-light h-100">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Role</div>
-                            <span class="badge bg-primary px-3 py-2">{{ current_user.role | upper }}</span>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">{{ t("account.profile_role") }}</div>
+                            <span class="badge bg-primary px-3 py-2">{{ t("admin.super_admin") if current_user.is_super_admin else current_user.role }}</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="p-3 rounded border bg-light h-100">
-                            <div class="text-muted small text-uppercase fw-bold mb-1">Account Status</div>
+                            <div class="text-muted small text-uppercase fw-bold mb-1">{{ t("account.account_status") }}</div>
                             {% if current_user.is_active %}
-                                <span class="badge bg-success px-3 py-2">ACTIVE</span>
+                                <span class="badge bg-success px-3 py-2">{{ t("account.active") }}</span>
                             {% else %}
-                                <span class="badge bg-danger px-3 py-2">DISABLED</span>
+                                <span class="badge bg-danger px-3 py-2">{{ t("account.disabled") }}</span>
                             {% endif %}
                         </div>
                     </div>
@@ -50,10 +51,10 @@
 
                 <div class="d-flex flex-wrap gap-2">
                     <a href="{{ url_for('account.change_password') }}" class="btn btn-warning fw-bold">
-                        <i class="fas fa-key me-1"></i> Change Password
+                        <i class="fas fa-key me-1"></i> {{ t("account.change_password") }}
                     </a>
                     <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary fw-bold">
-                        <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        <i class="fas fa-arrow-left me-1"></i> {{ t("account.back_to_dashboard") }}
                     </a>
                 </div>
             </div>

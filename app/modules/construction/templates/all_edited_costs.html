@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("audit.cost_edits_archive") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 
 <style>
@@ -29,25 +30,25 @@
 <div class="container-fluid py-4 animation-fade-in">
     <div class="mb-4 d-flex justify-content-between align-items-end">
         <div>
-            <h3 class="fw-bold mb-1 text-info"><i class="fas fa-edit me-2"></i>Cost Edits Archive</h3>
-            <p class="text-muted small mb-0">Complete audit trail of all modified cost entries.</p>
+            <h3 class="fw-bold mb-1 text-info"><i class="fas fa-edit me-2"></i>{{ t("audit.cost_edits_archive") }}</h3>
+            <p class="text-muted small mb-0">{{ t("audit.cost_edits_subtitle") }}</p>
         </div>
-        <a href="{{ url_for('construction_admin.audit_log') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-arrow-left me-2"></i>Back to Audit Hub</a>
+        <a href="{{ url_for('construction_admin.audit_log') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-arrow-left me-2"></i>{{ t("audit.back_to_audit_hub") }}</a>
     </div>
 
     <div class="filter-node mb-4">
         <div class="row g-3">
             <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Search by Project</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("audit.search_by_project") }}</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="searchCost" class="form-control form-control-custom border-start-0" placeholder="Type project name...">
+                    <input type="text" id="searchCost" class="form-control form-control-custom border-start-0" placeholder="{{ t("audit.type_project_name") }}">
                 </div>
             </div>
             <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Filter by Editor</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("audit.filter_by_editor") }}</label>
                 <select id="filterEditor" class="form-select form-control-custom">
-                    <option value="all">All Editors</option>
+                    <option value="all">{{ t("audit.all_editors") }}</option>
                     {% set editors = [] %}
                     {% for log in edited_costs %}
                         {% if log.editor.username not in editors %}
@@ -64,11 +65,11 @@
         <table class="table custom-table" id="archiveTable">
             <thead>
                 <tr>
-                    <th>Date Edited</th>
-                    <th>Project Name</th>
-                    <th>Category</th>
-                    <th>Edited By</th>
-                    <th class="text-end">Action</th>
+                    <th>{{ t("audit.date_edited") }}</th>
+                    <th>{{ t("audit.project_name") }}</th>
+                    <th>{{ t("cost.category_table") }}</th>
+                    <th>{{ t("audit.edited_by") }}</th>
+                    <th class="text-end">{{ t("audit.action") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -76,12 +77,12 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr class="archive-row" data-editor="{{ log.editor.username | lower }}">
                     <td class="small fw-bold text-muted">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold text-dark proj-name">{{ log.project_name_snapshot or after.project_name }}</td>
+                    <td class="fw-bold text-dark"><span class="proj-name project-name-glass">{{ log.project_name_snapshot or after.project_name }}</span></td>
                     <td><span class="badge bg-light text-dark border">{{ after.cost_type or after.category }}</span></td>
                     <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>{{ log.editor.username }}</span></td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-info shadow-sm fw-bold" data-bs-toggle="collapse" data-bs-target="#costEdit{{ log.id }}">
-                            <i class="fas fa-exchange-alt me-1"></i> Compare
+                            <i class="fas fa-exchange-alt me-1"></i> {{ t("audit.compare") }}
                         </button>
                     </td>
                 </tr>
@@ -91,11 +92,11 @@
                             <div class="p-3 mx-2 mb-3 snapshot-box shadow-sm">
                                 <div class="row">
                                     <div class="col-md-6 border-end">
-                                        <h6 class="text-danger fw-bold border-bottom pb-2"><i class="fas fa-minus-circle me-1"></i> Before Edit</h6>
+                                        <h6 class="text-danger fw-bold border-bottom pb-2"><i class="fas fa-minus-circle me-1"></i> {{ t("audit.before_edit") }}</h6>
                                         <div class="text-muted">{{ log.before_snapshot }}</div>
                                     </div>
                                     <div class="col-md-6">
-                                        <h6 class="text-success fw-bold border-bottom pb-2"><i class="fas fa-plus-circle me-1"></i> After Edit</h6>
+                                        <h6 class="text-success fw-bold border-bottom pb-2"><i class="fas fa-plus-circle me-1"></i> {{ t("audit.after_edit") }}</h6>
                                         <div class="text-dark">{{ log.after_snapshot }}</div>
                                     </div>
                                 </div>
@@ -104,12 +105,12 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-center py-5 text-muted"><i class="fas fa-folder-open fs-2 mb-3 d-block"></i>No edited costs found.</td></tr>
+                <tr><td colspan="5" class="text-center py-5 text-muted"><i class="fas fa-folder-open fs-2 mb-3 d-block"></i>{{ t("audit.no_edited_costs") }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% set pagination_label = 'cost edit logs' %}
+    {% set pagination_label = t('audit.cost_edits_archive') %}
     {% include "_pagination.html" %}
 </div>
 

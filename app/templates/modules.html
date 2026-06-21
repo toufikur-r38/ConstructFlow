@@ -1,0 +1,735 @@
+{% extends "layout.html" %}
+{% block title %}{{ t("modules.title") }} - {{ t("common.app_name") }}{% endblock %}
+{% block content %}
+
+<style>
+    .module-hub {
+        max-width: 1480px;
+        margin: 0 auto;
+    }
+
+    .module-hero {
+        background:
+            linear-gradient(135deg, rgba(26, 42, 108, 0.96), rgba(0, 137, 123, 0.9)),
+            url("{{ url_for('static', filename='img/ConstructFlow-logo-nav.png') }}") right 32px center / 160px auto no-repeat;
+        color: #fff;
+        border-radius: 8px;
+        padding: 28px;
+        min-height: 170px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        overflow: hidden;
+    }
+
+    .module-hero-copy {
+        max-width: 720px;
+    }
+
+    .module-hero-title {
+        font-size: 30px;
+        line-height: 1.15;
+        font-weight: 800;
+        margin: 0 0 8px;
+    }
+
+    .module-hero-subtitle {
+        color: rgba(255, 255, 255, 0.84);
+        margin: 0;
+    }
+
+    .module-access-badge {
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .module-section-title {
+        color: var(--text-main);
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0 0 12px;
+    }
+
+    .module-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+    }
+
+    .module-picker-dock {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow-soft);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .module-dock-item {
+        min-width: 210px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
+        color: var(--text-main);
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 11px;
+        padding: 12px;
+        transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    }
+
+    .module-dock-item:hover,
+    .module-dock-item:focus {
+        color: var(--text-main);
+        border-color: color-mix(in srgb, var(--navy) 35%, var(--border-soft));
+        background: color-mix(in srgb, var(--surface) 86%, var(--navy));
+        transform: translateY(-1px);
+        outline: none;
+    }
+
+    .module-dock-item.active {
+        border-color: color-mix(in srgb, var(--navy) 42%, var(--border-soft));
+        background: color-mix(in srgb, var(--surface) 88%, var(--navy));
+    }
+
+    .module-dock-item.preview {
+        opacity: 0.62;
+        cursor: default;
+        pointer-events: none;
+    }
+
+    .module-dock-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--navy) 12%, transparent);
+        color: var(--navy);
+    }
+
+    .module-dock-title {
+        display: block;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .module-dock-meta {
+        display: block;
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .module-overview-shell {
+        display: grid;
+        grid-template-columns: 0.9fr 1.5fr;
+        gap: 16px;
+        align-items: stretch;
+        margin-bottom: 18px;
+    }
+
+    .overview-spotlight {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: linear-gradient(135deg, color-mix(in srgb, var(--surface) 86%, var(--navy)), var(--surface));
+        padding: 20px;
+        min-height: 100%;
+    }
+
+    .overview-kicker {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        margin-bottom: 8px;
+    }
+
+    .overview-title {
+        color: var(--text-main);
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.2;
+        margin: 0 0 8px;
+    }
+
+    .overview-copy {
+        color: var(--text-muted);
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .overview-signal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .overview-signal {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--surface);
+        padding: 16px;
+        min-height: 100%;
+    }
+
+    .overview-signal-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        background: color-mix(in srgb, var(--success) 14%, transparent);
+        color: var(--success);
+    }
+
+    .overview-signal-title {
+        color: var(--text-main);
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .overview-signal-copy {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .module-picker-card {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow-soft);
+        color: var(--text-main);
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        padding: 18px;
+        min-height: 112px;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .module-picker-card:hover,
+    .module-picker-card:focus {
+        color: var(--text-main);
+        border-color: color-mix(in srgb, var(--navy) 32%, var(--border-soft));
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+        outline: none;
+    }
+
+    .module-picker-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--navy) 12%, transparent);
+        color: var(--navy);
+    }
+
+    .module-picker-title {
+        font-weight: 800;
+        margin-bottom: 3px;
+    }
+
+    .module-picker-summary {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.35;
+    }
+
+    .module-picker-arrow {
+        color: var(--text-muted);
+    }
+
+    .module-card {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .module-card:hover {
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.10);
+    }
+
+    .module-card-header {
+        padding: 22px 24px;
+        border-bottom: 1px solid var(--border-soft);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    .module-identity {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .module-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--navy) 12%, transparent);
+        color: var(--navy);
+        flex: 0 0 auto;
+    }
+
+    .module-title {
+        margin: 0;
+        color: var(--text-main);
+        font-size: 21px;
+        font-weight: 800;
+    }
+
+    .module-summary {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-top: 3px;
+    }
+
+    .module-open {
+        border-radius: 999px;
+        padding: 9px 15px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .module-card-body {
+        padding: 24px;
+    }
+
+    .module-status-strip {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 18px;
+        align-items: stretch;
+        margin-bottom: 20px;
+    }
+
+    .module-condition {
+        border-radius: 8px;
+        padding: 18px;
+        background: color-mix(in srgb, var(--surface-soft) 85%, var(--success));
+        border: 1px solid var(--border-soft);
+    }
+
+    .module-condition.warning {
+        background: color-mix(in srgb, var(--surface-soft) 84%, var(--warning));
+    }
+
+    .condition-label {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        margin-bottom: 6px;
+    }
+
+    .condition-value {
+        color: var(--text-main);
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .condition-note {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-top: 4px;
+    }
+
+    .module-utilization {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        padding: 18px;
+        background: var(--surface);
+    }
+
+    .utilization-topline {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        color: var(--text-main);
+        font-weight: 800;
+    }
+
+    .utilization-track {
+        height: 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--surface-soft) 82%, var(--border-soft));
+        overflow: hidden;
+    }
+
+    .utilization-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--success), var(--warning), var(--safety-red));
+        width: var(--module-utilization);
+        max-width: 100%;
+    }
+
+    .module-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .module-metric {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        padding: 14px;
+        background: color-mix(in srgb, var(--surface) 92%, var(--surface-soft));
+        min-width: 0;
+    }
+
+    .module-metric-label {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .module-metric-value {
+        color: var(--text-main);
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    .module-watchlist {
+        border-top: 1px solid var(--border-soft);
+        padding-top: 18px;
+    }
+
+    .watchlist-title {
+        color: var(--text-main);
+        font-weight: 800;
+        margin-bottom: 12px;
+    }
+
+    .watchlist-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .watchlist-row:last-child {
+        border-bottom: 0;
+    }
+
+    .watchlist-name {
+        color: var(--text-main);
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .watchlist-meta {
+        color: var(--text-muted);
+        font-size: 12px;
+        margin-top: 2px;
+    }
+
+    .watchlist-percent {
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--warning) 18%, transparent);
+        color: color-mix(in srgb, var(--warning) 68%, var(--text-main));
+        font-weight: 800;
+        padding: 6px 10px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .module-empty {
+        border: 1px dashed var(--border-soft);
+        border-radius: 8px;
+        padding: 26px;
+        background: var(--surface);
+        color: var(--text-muted);
+    }
+
+    @media (max-width: 991.98px) {
+        .module-hero {
+            align-items: flex-start;
+            flex-direction: column;
+            background-size: 96px auto;
+            background-position: right 18px top 18px;
+            padding: 22px;
+        }
+
+        .module-hero-title {
+            font-size: 25px;
+        }
+
+        .module-card-header,
+        .module-status-strip {
+            grid-template-columns: 1fr;
+            align-items: flex-start;
+        }
+
+        .module-card-header {
+            flex-direction: column;
+        }
+
+        .module-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .module-picker-card {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .module-picker-arrow {
+            display: none;
+        }
+
+        .module-overview-shell {
+            grid-template-columns: 1fr;
+        }
+
+        .overview-signal-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .module-metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .watchlist-row {
+            grid-template-columns: 1fr;
+        }
+
+        .watchlist-percent {
+            width: fit-content;
+        }
+    }
+</style>
+
+{% set construction_overview = module_overviews.get('construction') if module_overviews else none %}
+{% set construction_condition_warning = construction_overview and construction_overview.projects_in_danger > 0 %}
+
+<div class="container-fluid mt-4">
+    <div class="module-hub">
+        <section class="module-hero mb-4">
+            <div class="module-hero-copy">
+                <h1 class="module-hero-title">{{ t("modules.workspace_overview") }}</h1>
+                <p class="module-hero-subtitle">{{ t("modules.overview_subtitle") }}</p>
+            </div>
+            {% if current_user.is_super_admin %}
+                <span class="module-access-badge">{{ t("admin.super_admin") }}</span>
+            {% else %}
+                <span class="module-access-badge">{{ visible_modules|length }} {{ t("modules.available_count") }}</span>
+            {% endif %}
+        </section>
+
+        <section class="mb-4">
+            <h2 class="module-section-title">{{ t("modules.select_module") }}</h2>
+            <div class="module-picker-dock" aria-label="Module picker">
+                {% for module_name, module_label in visible_modules.items() %}
+                    {% if module_name == 'construction' %}
+                    <a href="{{ url_for('dashboard.index') }}" class="module-dock-item active text-decoration-none">
+                        <span class="module-dock-icon">
+                            <i class="fas fa-building"></i>
+                        </span>
+                        <span>
+                            <span class="module-dock-title">{{ t(module_label) }}</span>
+                            <span class="module-dock-meta">{{ t("modules.construction_summary") }}</span>
+                        </span>
+                    </a>
+                    {% endif %}
+                {% else %}
+                    <div class="module-empty">
+                        {{ t("modules.none_assigned") }}
+                    </div>
+                {% endfor %}
+                <div class="module-dock-item preview">
+                    <span class="module-dock-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </span>
+                    <span>
+                        <span class="module-dock-title">Accounts</span>
+                        <span class="module-dock-meta">Preview slot</span>
+                    </span>
+                </div>
+                <div class="module-dock-item preview">
+                    <span class="module-dock-icon">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </span>
+                    <span>
+                        <span class="module-dock-title">Inventory</span>
+                        <span class="module-dock-meta">Preview slot</span>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        {% if 'construction' in visible_modules %}
+        <section>
+            <h2 class="module-section-title">{{ t("modules.module_overview") }}</h2>
+            <article class="module-card">
+                <div class="module-card-header">
+                    <div class="module-identity">
+                        <div class="module-icon">
+                            <i class="fas fa-building fs-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="module-title">{{ t("modules.construction") }}</h2>
+                            <div class="module-summary">{{ t("modules.construction_financial_overview") }}</div>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary module-open">
+                        {{ t("modules.open_workspace") }}
+                        <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+
+                <div class="module-card-body">
+                    {% if construction_overview %}
+                    <div class="module-overview-shell">
+                        <div class="overview-spotlight">
+                            <div class="overview-kicker">Construction</div>
+                            <h3 class="overview-title">{{ t("modules.construction_financial_overview") }}</h3>
+                            <p class="overview-copy">
+                                A quick command-center view for budget health, running work, and the projects that need the closest financial attention.
+                            </p>
+                        </div>
+                        <div class="overview-signal-grid">
+                            <div class="overview-signal">
+                                <span class="overview-signal-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
+                                <div class="overview-signal-title">{{ construction_overview.utilization }}%</div>
+                                <div class="overview-signal-copy">{{ t("modules.budget_utilization") }}</div>
+                            </div>
+                            <div class="overview-signal">
+                                <span class="overview-signal-icon">
+                                    <i class="fas fa-hard-hat"></i>
+                                </span>
+                                <div class="overview-signal-title">{{ construction_overview.running_count }}</div>
+                                <div class="overview-signal-copy">{{ t("dashboard.running_projects") }}</div>
+                            </div>
+                            <div class="overview-signal">
+                                <span class="overview-signal-icon">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                </span>
+                                <div class="overview-signal-title">{{ construction_overview.projects_in_danger }}</div>
+                                <div class="overview-signal-copy">{{ t("modules.projects_need_attention") }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="module-status-strip">
+                        <div class="module-condition {% if construction_condition_warning %}warning{% endif %}">
+                            <div class="condition-label">{{ t("modules.module_condition") }}</div>
+                            <div class="condition-value">
+                                {% if construction_condition_warning %}
+                                    {{ t("modules.condition_attention") }}
+                                {% else %}
+                                    {{ t("modules.condition_healthy") }}
+                                {% endif %}
+                            </div>
+                            <div class="condition-note">
+                                {{ construction_overview.projects_in_danger }} {{ t("modules.projects_need_attention") }}
+                            </div>
+                        </div>
+
+                        <div class="module-utilization">
+                            <div class="utilization-topline">
+                                <span>{{ t("modules.budget_utilization") }}</span>
+                                <span>{{ construction_overview.utilization }}%</span>
+                            </div>
+                            <div class="utilization-track" style="--module-utilization: {{ construction_overview.utilization }}%;">
+                                <div class="utilization-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="module-metrics">
+                        <div class="module-metric">
+                            <div class="module-metric-label">{{ t("dashboard.running_projects") }}</div>
+                            <div class="module-metric-value">{{ construction_overview.running_count }}</div>
+                        </div>
+                        <div class="module-metric">
+                            <div class="module-metric-label">{{ t("dashboard.total_budget") }}</div>
+                            <div class="module-metric-value">{{ t("common.currency_bdt") }} {{ "{:,.0f}".format(construction_overview.total_budget) }}</div>
+                        </div>
+                        <div class="module-metric">
+                            <div class="module-metric-label">{{ t("modules.total_spent") }}</div>
+                            <div class="module-metric-value">{{ t("common.currency_bdt") }} {{ "{:,.0f}".format(construction_overview.total_spent) }}</div>
+                        </div>
+                        <div class="module-metric">
+                            <div class="module-metric-label">{{ t("dashboard.expenses_this_month") }}</div>
+                            <div class="module-metric-value">{{ t("common.currency_bdt") }} {{ "{:,.0f}".format(construction_overview.spent_this_month) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="module-watchlist">
+                        <div class="watchlist-title">{{ t("modules.project_watchlist") }}</div>
+                        {% for project in construction_overview.top_projects %}
+                            <div class="watchlist-row">
+                                <div>
+                                    <div class="watchlist-name">{{ project.name }}</div>
+                                    <div class="watchlist-meta">
+                                        {{ t("dashboard.budget_left") }}:
+                                        {{ t("common.currency_bdt") }} {{ "{:,.0f}".format(project.left) }}
+                                    </div>
+                                </div>
+                                <div class="watchlist-percent">{{ project.percent }}%</div>
+                            </div>
+                        {% else %}
+                            <div class="module-empty">{{ t("modules.no_running_projects") }}</div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="module-empty">{{ t("modules.overview_unavailable") }}</div>
+                    {% endif %}
+                </div>
+            </article>
+        </section>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

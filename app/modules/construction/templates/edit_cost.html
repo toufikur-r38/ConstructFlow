@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("edit_cost.title") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 {% set selected_project_id = form.get('project_id', entry.project_id|string) %}
@@ -18,37 +19,37 @@
                 <div class="card-body p-4">
                     
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold mb-0" style="color: var(--navy);">✏️ Edit Expenditure Entry</h4>
+                        <h4 class="fw-bold mb-0" style="color: var(--navy);"><i class="fas fa-edit me-2"></i>{{ t("edit_cost.title") }}</h4>
                         <a href="{{ url_for('costs.view_costs') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Ledger
+                            <i class="fas fa-arrow-left me-1"></i> {{ t("edit_cost.back_to_ledger") }}
                         </a>
                     </div>
 
                     <div class="card bg-light border-0 mb-4 shadow-sm">
                         <div class="card-body">
                             <h6 class="fw-bold text-muted text-uppercase mb-3">
-                                <i class="fas fa-eye me-2"></i>Original Record Details
+                                <i class="fas fa-eye me-2"></i>{{ t("edit_cost.original_record_details") }}
                             </h6>
                             <div class="row text-secondary small">
                                 <div class="col-md-3 mb-2">
-                                    <span class="d-block fw-bold text-dark">Date:</span> 
-                                    {{ entry.date.strftime('%Y-%m-%d') if entry.date else 'N/A' }}
+                                    <span class="d-block fw-bold text-dark">{{ t("edit_cost.date") }}</span> 
+                                    {{ entry.date.strftime('%Y-%m-%d') if entry.date else t("common.not_available") }}
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <span class="d-block fw-bold text-dark">Project:</span> 
+                                    <span class="d-block fw-bold text-dark">{{ t("edit_cost.project") }}</span> 
                                     {{ entry.project.project_name }}
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <span class="d-block fw-bold text-dark">Category:</span> 
+                                    <span class="d-block fw-bold text-dark">{{ t("edit_cost.category") }}</span> 
                                     <span class="badge bg-secondary">{{ entry.cost_type }}</span>
                                 </div>
                                 <div class="col-md-3 mb-2">
-                                    <span class="d-block fw-bold text-dark">Original Total:</span> 
+                                    <span class="d-block fw-bold text-dark">{{ t("edit_cost.original_total") }}</span> 
                                     <span class="text-danger fw-bold">৳ {{ "{:,.2f}".format(entry.total_amount) }}</span>
                                 </div>
                                 <div class="col-md-12 mt-2">
-                                    <span class="fw-bold text-dark">Original Remarks:</span> 
-                                    {{ entry.remarks or 'No remarks provided.' }}
+                                    <span class="fw-bold text-dark">{{ t("edit_cost.original_remarks") }}</span> 
+                                    {{ entry.remarks or t("edit_cost.no_remarks") }}
                                 </div>
                             </div>
                         </div>
@@ -57,7 +58,7 @@
                     <div class="alert alert-info bg-info bg-opacity-10 border-0 text-info mb-4 d-flex align-items-center">
                         <i class="fas fa-info-circle fs-4 me-3"></i>
                         <div>
-                            <strong>Audit Active:</strong> Changing these values will update the ledger and log this before/after state in the admin audit history.
+                            <strong>{{ t("edit_cost.audit_active") }}</strong> {{ t("edit_cost.audit_help") }}
                         </div>
                     </div>
 
@@ -65,9 +66,9 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">1. Project Site <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_cost.project_site") }} <span class="text-danger">*</span></label>
                                 <select name="project_id" class="form-select" required>
-                                    <option value="" disabled>Choose project...</option>
+                                    <option value="" disabled>{{ t("cost.choose_project") }}</option>
                                     {% for project in projects %}
                                     <option value="{{ project.id }}" {% if selected_project_id == project.id|string %}selected{% endif %}>
                                         {{ project.project_name }}
@@ -77,15 +78,15 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">2. Expense Date <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_cost.expense_date") }} <span class="text-danger">*</span></label>
                                 <input type="date" name="date" class="form-control" id="entryDate" 
                                        value="{{ form.get('date', entry.date.strftime('%Y-%m-%d') if entry.date else '') }}" required>
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">3. Category <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_cost.category_label") }} <span class="text-danger">*</span></label>
                                 <select name="cost_type" class="form-select search-select" required>
-                                    <option value="">Search Category...</option>
+                                    <option value="">{{ t("cost.search_category") }}</option>
                                     {% for cat in cost_types %}
                                     <option value="{{ cat }}" {% if selected_cost_type == cat %}selected{% endif %}>{{ cat }}</option>
                                     {% endfor %}
@@ -96,43 +97,43 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">4. Quantity <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_cost.quantity") }} <span class="text-danger">*</span></label>
                                 <input type="number" id="qty" name="quantity" class="form-control" 
                                        value="{{ draft_quantity }}" step="any" required>
                             </div>
                             
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">5. Per Unit Rate (TK) <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_cost.per_unit_rate") }} <span class="text-danger">*</span></label>
                                 <input type="number" id="rate" name="unit_rate" class="form-control" 
                                        value="{{ draft_unit_rate }}" step="any" required>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="p-2 bg-light rounded border text-center h-100 d-flex flex-column justify-content-center">
-                                    <label class="form-label fw-bold text-primary mb-0 small">6. REVISED TOTAL </label>
+                                    <label class="form-label fw-bold text-primary mb-0 small">{{ t("edit_cost.revised_total") }} </label>
                                     <h3 class="mb-0 text-primary fw-bold">৳ <span id="totalLabel">{{ "{:,.2f}".format(entry.total_amount) }}</span></h3>
                                     <input type="hidden" name="total_amount" id="totalInput" value="{{ entry.total_amount }}">
                                 </div>
                             </div>
 
                             <div class="col-md-10">
-                                <label class="form-label fw-bold">7. Details / Remarks</label>
+                                <label class="form-label fw-bold">{{ t("edit_cost.details_remarks") }}</label>
                                 <input type="text" name="remarks" class="form-control" maxlength="500"
-                                       value="{{ form.get('remarks', entry.remarks or '') }}" placeholder="e.g. 100 bags Cement, Bill #452">
+                                       value="{{ form.get('remarks', entry.remarks or '') }}" placeholder="{{ t("cost.remarks_example_placeholder") }}">
                             </div>
                             <div class="col-md-12 mb-4">
                             <div class="p-3 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25">
                                 <label class="form-label fw-bold text-dark mb-1">
-                                    <i class="fas fa-lock me-1 text-warning"></i> Verification Password <span class="text-danger">*</span>
+                                    <i class="fas fa-lock me-1 text-warning"></i> {{ t("edit_cost.verification_password") }} <span class="text-danger">*</span>
                                 </label>
-                                <p class="text-muted small mb-2">Please verify your current account password to save updates to this expenditure ledger entry.</p>
+                                <p class="text-muted small mb-2">{{ t("edit_cost.verify_password_help") }}</p>
                                 <input type="password" name="admin_password" class="form-control bg-white js-password-toggle" placeholder="••••••••" required>
                             </div>
                         </div>
 
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-info text-white w-100 fw-bold py-2 shadow-sm">
-                                    <i class="fas fa-save me-1"></i> UPDATE
+                                    <i class="fas fa-save me-1"></i> {{ t("edit_cost.update") }}
                                 </button>
                             </div>
                         </div>
@@ -190,11 +191,11 @@ calculateTotal();
     const errorTracker = document.getElementById('authErrorTracker');
     if (errorTracker && errorTracker.dataset.hasError === 'true' && window.Swal) {
             Swal.fire({
-                title: 'Authorization Failed!',
-                text: 'The confirmation password you supplied is incorrect. Changes were not applied.',
+                title: '{{ t("edit_cost.authorization_failed") }}',
+                text: '{{ t("edit_cost.authorization_failed_text") }}',
                 icon: 'error',
                 confirmButtonColor: '#e63946',
-                confirmButtonText: 'Try Again',
+                confirmButtonText: '{{ t("common.try_again") }}',
                 backdrop: 'rgba(26, 42, 108, 0.4)'
             });
     }
@@ -212,8 +213,8 @@ calculateTotal();
         if (!passwordValue) {
             if (window.Swal) {
                 Swal.fire({
-                    title: 'Password Required',
-                    text: 'Please input your administrative security credentials to save updates to this expenditure ledger entry.',
+                    title: '{{ t("edit_cost.password_required") }}',
+                    text: '{{ t("edit_cost.password_required_text") }}',
                     icon: 'warning',
                     confirmButtonColor: '#ffc107'
                 });
@@ -229,15 +230,15 @@ calculateTotal();
         }
 
         // Default Positive Entry Configuration Parameters
-        let alertTitle = 'Confirm Update?';
-        let alertHtml = `You are modifying this expenditure record. The new calculated ledger total is <strong class="text-danger">৳ ${totalAmountText}</strong>. <br>Save changes to the ledger?`;
+        let alertTitle = '{{ t("cost.confirm_update_title") }}';
+        let alertHtml = `{{ t("cost.confirm_update_intro") }} <strong class="text-danger">BDT ${totalAmountText}</strong>. <br>{{ t("cost.save_changes_question") }}`;
         let confirmBtnColor = '#0dcaf0'; 
         let alertIcon = 'warning';
 
         // Swap out view elements automatically if adjustment dips below 0
         if (currentTotal < 0) {
-            alertTitle = 'Confirm Negative Update?';
-            alertHtml = `You are applying a negative adjustment of <strong class="text-primary">৳ ${totalAmountText}</strong>.<br><br><span class="text-muted small">Please verify that this modification represents an authorized <b>Refund, Credit, or Material Reversal</b> record.</span>`;
+            alertTitle = '{{ t("cost.confirm_negative_update") }}';
+            alertHtml = `{{ t("cost.negative_update_intro") }} <strong class="text-primary">BDT ${totalAmountText}</strong>.<br><br><span class="text-muted small">{{ t("cost.negative_update_help_prefix") }} <b>{{ t("cost.refund_credit_material_reversal") }}</b> {{ t("cost.record_label") }}</span>`;
             confirmBtnColor = '#0d6efd'; 
             alertIcon = 'info';
         }
@@ -249,14 +250,14 @@ calculateTotal();
             showCancelButton: true,
             confirmButtonColor: confirmBtnColor,
             cancelButtonColor: '#6c757d',  
-            confirmButtonText: '<i class="fas fa-save"></i> Yes, update it!',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: '<i class="fas fa-save"></i> {{ t("cost.yes_update_it") }}',
+            cancelButtonText: '{{ t("common.cancel") }}',
             backdrop: `rgba(26, 42, 108, 0.4)`
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({
-                    title: 'Processing...',
-                    text: 'Validating security credentials...',
+                    title: '{{ t("cost.processing") }}',
+                    text: '{{ t("cost.validating_credentials") }}',
                     icon: 'success',
                     timer: 1000,
                     showConfirmButton: false

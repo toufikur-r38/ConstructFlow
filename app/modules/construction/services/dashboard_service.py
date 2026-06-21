@@ -31,12 +31,16 @@ def get_dashboard_math():
 
     project_stats = []
     projects_in_danger = 0
+    total_budget = 0
+    total_spent = 0
 
     for p in running_projects:
         spent = cost_dict.get(p.id, 0)
         budget = p.contract_price or 0
         left = budget - spent
         percent = round((spent / budget * 100), 1) if budget > 0 else 0
+        total_budget += budget
+        total_spent += spent
 
         if percent >= 80:
             projects_in_danger += 1
@@ -50,10 +54,19 @@ def get_dashboard_math():
             'percent': percent,
         })
 
+    budget_left = total_budget - total_spent
+    utilization = round((total_spent / total_budget * 100), 1) if total_budget > 0 else 0
+    top_projects = sorted(project_stats, key=lambda item: item['percent'], reverse=True)[:3]
+
     return {
         'running_count': len(running_projects),
         'spent_today': spent_today,
         'spent_this_month': spent_this_month,
         'projects_in_danger': projects_in_danger,
         'project_stats': project_stats,
+        'total_budget': total_budget,
+        'total_spent': total_spent,
+        'budget_left': budget_left,
+        'utilization': utilization,
+        'top_projects': top_projects,
     }

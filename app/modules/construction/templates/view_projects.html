@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("project.ledger_title") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 
 <style>
     :root {
-        --table-border: #edf2f7;
+        --table-border: rgba(26, 42, 108, 0.16);
         --navy: #1a2a6c;
         --danger-soft: #fff5f5;
     }
@@ -36,6 +37,7 @@
     .custom-table {
         border-collapse: separate;
         border-spacing: 0 10px;
+        margin-bottom: 0;
     }
 
     .custom-table thead th {
@@ -51,7 +53,7 @@
 
     .custom-table tbody tr {
         background-color: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02), 0 0 0 1px rgba(26, 42, 108, 0.10);
         transition: all 0.2s ease;
     }
 
@@ -76,13 +78,25 @@
 
     .project-filter-trigger:hover,
     .project-filter-trigger:focus {
-        text-decoration: underline;
+        text-decoration: none;
+    }
+
+    .project-filter-trigger.project-name-glass {
+        min-height: 30px;
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        font-size: 0.82rem;
+    }
+
+    code.project-filter-trigger.project-name-glass {
+        font-family: inherit;
     }
 
     .custom-table td {
         padding: 16px 12px;
         border-top: 1px solid var(--table-border);
         border-bottom: 1px solid var(--table-border);
+        border-right: 1px solid rgba(26, 42, 108, 0.10);
         vertical-align: middle;
     }
 
@@ -192,30 +206,31 @@
 <div class="ledger-container">
     <div class="mb-4 mt-2 d-flex justify-content-between align-items-end">
         <div>
-            <h3 class="fw-bold mb-1" style="color: var(--navy);">Project Ledger</h3>
-            <p class="text-muted small mb-0">Comprehensive record of all registered construction projects</p>
+            <h3 class="fw-bold mb-1" style="color: var(--navy);">{{ t("project.ledger_title") }}</h3>
+            <p class="text-muted small mb-0">{{ t("project.ledger_subtitle") }}</p>
         </div>
             <a href="{{ url_for('projects.add_project') }}" class="btn btn-dark fw-bold shadow-sm">
-            <i class="fas fa-plus me-2"></i> Register Project
+            <i class="fas fa-plus me-2"></i> {{ t("project.register_project") }}
         </a>
     </div>
 
     <div class="filter-node mb-4">
         <form method="GET" action="{{ url_for('projects.view_projects') }}" id="projectFilterForm">
             <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
+            <input type="hidden" name="focus_search" id="focusSearch" value="{{ request.args.get('focus_search', '') }}">
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Search</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("project.search") }}</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="generalSearch" name="search" class="form-control form-control-custom border-start-0" value="{{ request.args.get('search', '') }}" placeholder="Project, Firm, or Tender ID...">
+                    <input type="text" id="generalSearch" name="search" class="form-control form-control-custom border-start-0" value="{{ request.args.get('search', '') }}" placeholder="{{ t('project.project_firm_tender_placeholder') }}">
                 </div>
             </div>
 
             <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Sector</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("project.sector") }}</label>
                 <select id="sectorFilter" name="sector_filter" class="form-select form-control-custom" onchange="this.form.submit()">
-                    <option value="all">All Sectors</option>
+                    <option value="all">{{ t("project.all_sectors") }}</option>
                     {% for sector in sectors %}
                         <option value="{{ sector }}" {% if request.args.get('sector_filter') == sector %}selected{% endif %}>{{ sector }}</option>
                     {% endfor %}
@@ -223,9 +238,9 @@
             </div>
 
             <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted text-uppercase">Status</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("common.status") }}</label>
                 <select id="statusFilter" name="status_filter" class="form-select form-control-custom" onchange="this.form.submit()">
-                    <option value="all">All Statuses</option>
+                    <option value="all">{{ t("project.all_statuses") }}</option>
                     {% for status in statuses %}
                         <option value="{{ status }}" {% if request.args.get('status_filter') == status %}selected{% endif %}>{{ status }}</option>
                     {% endfor %}
@@ -235,7 +250,7 @@
             <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase d-block">&nbsp;</label>
                 <a href="{{ url_for('projects.view_projects', per_page=pagination.per_page if pagination else 25) }}" class="btn btn-outline-danger fw-bold w-100">
-                    <i class="fas fa-times me-1"></i> Reset Filters
+                    <i class="fas fa-times me-1"></i> {{ t("project.reset_filters") }}
                 </a>
             </div>
         </div>
@@ -246,14 +261,14 @@
         <table class="table custom-table project-ledger-table" id="projectTable">
             <thead>
                 <tr>
-                    <th>Project & Sector</th>
-                    <th>Firm & Tender</th>
-                    <th>NOA Date & WorkYear</th>
-                    <th>Address</th>
-                    <th>Budget Monitor</th>
-                    <th>Status</th>
-                    {% if current_user.role in ['admin', 'operator'] %}
-                    <th class="text-end">Actions</th>
+                    <th>{{ t("project.project_and_sector") }}</th>
+                    <th>{{ t("project.firm_and_tender") }}</th>
+                    <th>{{ t("project.noa_date_work_year") }}</th>
+                    <th>{{ t("project.address") }}</th>
+                    <th>{{ t("project.budget_monitor") }}</th>
+                    <th>{{ t("common.status") }}</th>
+                    {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
+                    <th class="text-end">{{ t("common.actions") }}</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -264,37 +279,37 @@
                     data-sector="{{ p.sector }}"
                     data-view-url="{{ url_for('costs.view_costs', project_filter=p.id) }}"
                     tabindex="0"
-                    title="Open cost ledger for {{ p.project_name }}">
+                    title="{{ t('project.open_cost_ledger') }} {{ p.project_name }}">
                     <td>
-                        <div class="fw-bold text-dark project-name">{{ p.project_name }}</div>
+                        <div class="fw-bold text-dark project-name project-name-glass">{{ p.project_name }}</div>
                         <div class="text-muted x-small text-uppercase fw-bold sector-text" style="font-size: 0.7rem;">
-                            ({{ p.sector or 'Uncategorized' }})
+                            ({{ p.sector or t('project.uncategorized') }})
                         </div>
                     </td>
 
                     <td class="small">
                         {% if p.firm_name %}
-                        <div class="firm-name fw-semibold text-secondary project-filter-trigger"
+                        <div class="firm-name fw-semibold project-filter-trigger project-name-glass"
                              role="button"
                              tabindex="0"
                              data-project-search="{{ p.firm_name }}"
-                             title="Filter by firm">{{ p.firm_name }}</div>
+                             title="{{ t('project.filter_by_firm') }}">{{ p.firm_name }}</div>
                         {% else %}
                         <div class="firm-name fw-semibold text-secondary">---</div>
                         {% endif %}
                         {% if p.tender_id %}
-                        <code class="text-primary small fw-bold project-filter-trigger"
+                        <code class="small fw-bold project-filter-trigger project-name-glass"
                               role="button"
                               tabindex="0"
                               data-project-search="{{ p.tender_id }}"
-                              title="Filter by Tender ID">{{ p.tender_id }}</code>
+                              title="{{ t('project.filter_by_tender_id') }}">{{ p.tender_id }}</code>
                         {% else %}
-                        <code class="text-primary small fw-bold">N/A</code>
+                        <code class="text-primary small fw-bold">{{ t("common.not_available") }}</code>
                         {% endif %}
                     </td>
 
                     <td class="small">
-                        <div class="fw-bold text-dark">{{ p.noa_date or 'Pending' }}</div>
+                        <div class="fw-bold text-dark">{{ p.noa_date or t('project.pending') }}</div>
                         <div class="fw-semibold text-secondary">{{ p.work_order_year or '---' }}</div>
                     </td>
 
@@ -309,15 +324,15 @@
                         data-left="BDT {{ '{:,.2f}'.format(finance.left if finance else p.contract_price or 0) }}"
                         data-used="{{ '{:,.1f}'.format(used_percent) }}%">
                         <div class="budget-monitor-row">
-                            <span>Budget</span>
+                            <span>{{ t("project.budget") }}</span>
                             <strong class="contract-price-cell">BDT {{ "{:,.2f}".format(p.contract_price or 0) }}</strong>
                         </div>
                         <div class="budget-monitor-row">
-                            <span>Spent</span>
+                            <span>{{ t("project.spent") }}</span>
                             <strong class="text-danger">BDT {{ "{:,.2f}".format(finance.spent if finance else 0) }}</strong>
                         </div>
                         <div class="budget-monitor-row mb-2">
-                            <span>Left</span>
+                            <span>{{ t("project.left") }}</span>
                             <strong class="{{ 'text-danger' if finance and finance.left < 0 else 'text-success' }}">BDT {{ "{:,.2f}".format(finance.left if finance else p.contract_price or 0) }}</strong>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -325,7 +340,7 @@
                                 {{ "{:,.1f}".format(used_percent) }}%
                             </span>
                             {% if finance and finance.left < 0 %}
-                                <span class="badge bg-danger bg-opacity-10 text-danger">OVER</span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger">{{ t("project.over") }}</span>
                             {% endif %}
                         </div>
                         <div class="progress budget-monitor-progress">
@@ -360,7 +375,7 @@
                                 {{ "{:,.1f}".format(used_percent) }}%
                             </span>
                             {% if finance and finance.left < 0 %}
-                                <span class="badge bg-danger bg-opacity-10 text-danger">OVER</span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger">{{ t("project.over") }}</span>
                             {% endif %}
                         </div>
                         <div class="progress" style="height: 6px;">
@@ -383,19 +398,19 @@
 
                     <td>
                         {% if p.is_void %}
-                            <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger px-3">VOIDED</span>
+                            <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger px-3">{{ t("project.voided") }}</span>
                         {% elif p.status == 'Running' %}
-                            <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-3">RUNNING</span>
+                            <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-3">{{ p.status }}</span>
                         {% else %}
-                            <span class="badge rounded-pill bg-light text-muted px-3">{{ p.status | upper }}</span>
+                            <span class="badge rounded-pill bg-light text-muted px-3">{{ p.status }}</span>
                         {% endif %}
                     </td>
 
-                    {% if current_user.role in ['admin', 'operator'] %}
+                    {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
                     <td class="text-end">
                         {% if not p.is_void %}
                         <div class="btn-group shadow-sm bg-white rounded">
-                            <a href="{{ url_for('construction_admin.edit_project', project_id=p.id) }}" class="btn btn-sm btn-outline-light border-0 text-warning" title="Edit">
+                            <a href="{{ url_for('construction_admin.edit_project', project_id=p.id) }}" class="btn btn-sm btn-outline-light border-0 text-warning" title="{{ t('common.edit') }}">
                                 <i class="fas fa-edit"></i>
                             </a>
                             <button type="button" 
@@ -403,25 +418,25 @@
                                     onclick="openVoidModal(this)" 
                                     data-project-name="{{ p.project_name }}"
                                     data-void-url="{{ url_for('construction_admin.void_project', project_id=p.id) }}"
-                                    title="Void Project">
+                                    title="{{ t('project.void_project') }}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                         {% elif p.is_void %}
-                            <small class="text-muted italic">Archived</small>
+                            <small class="text-muted italic">{{ t("project.archived") }}</small>
                         {% endif %}
                     </td>
                     {% endif %}
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="{% if current_user.role in ['admin', 'operator'] %}7{% else %}6{% endif %}" class="text-center py-5 text-muted">No projects found.</td>
+                    <td colspan="{% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}7{% else %}6{% endif %}" class="text-center py-5 text-muted">{{ t("project.no_projects_found") }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% set pagination_label = 'projects' %}
+    {% set pagination_label = t('project.ledger_title') %}
     {% include "_pagination.html" %}
 </div>
 
@@ -429,27 +444,27 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Void Project</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>{{ t("project.void_project") }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="voidProjectForm" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body p-4">
                     <p class="text-muted small mb-4">
-                        Deleting this project will <strong>permanently exclude</strong> it and all linked expenses from financial reports.
+                        {{ t("project.deleting_warning") }}
                     </p>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Reason for Deleting <span class="text-danger">*</span></label>
-                        <textarea name="reason" class="form-control" rows="2" placeholder="Required for audit trail..." required></textarea>
+                        <label class="form-label fw-bold">{{ t("project.reason_for_deleting") }} <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="{{ t('project.required_for_audit_trail') }}" required></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Confirm Your Password <span class="text-danger">*</span></label>
-                        <input type="password" name="confirm_password" class="form-control js-password-toggle" placeholder="Enter password to authorize" required>
+                        <label class="form-label fw-bold">{{ t("project.confirm_your_password") }} <span class="text-danger">*</span></label>
+                        <input type="password" name="confirm_password" class="form-control js-password-toggle" placeholder="{{ t('project.enter_password_to_authorize') }}" required>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger fw-bold">Confirm Delete</button>
+                    <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">{{ t("common.cancel") }}</button>
+                    <button type="submit" class="btn btn-danger fw-bold">{{ t("project.confirm_delete") }}</button>
                 </div>
             </form>
         </div>
@@ -465,16 +480,32 @@
 
     const projectFilterForm = document.getElementById('projectFilterForm');
     const projectSearchInput = document.getElementById('generalSearch');
+    const projectSearchFocusFlag = document.getElementById('focusSearch');
     let projectSearchTimer;
     let pendingProjectSearchSubmit = false;
 
     if (projectFilterForm && projectSearchInput) {
+        function submitProjectSearch() {
+            if (projectSearchFocusFlag) {
+                projectSearchFocusFlag.value = '1';
+            }
+            projectFilterForm.submit();
+        }
+
+        if (projectSearchFocusFlag && projectSearchFocusFlag.value === '1') {
+            window.requestAnimationFrame(function() {
+                projectSearchInput.focus({ preventScroll: true });
+                const textLength = projectSearchInput.value.length;
+                projectSearchInput.setSelectionRange(textLength, textLength);
+            });
+        }
+
         projectSearchInput.addEventListener('input', function() {
             pendingProjectSearchSubmit = true;
             window.clearTimeout(projectSearchTimer);
             projectSearchTimer = window.setTimeout(function() {
                 pendingProjectSearchSubmit = false;
-                projectFilterForm.submit();
+                submitProjectSearch();
             }, 550);
         });
 
@@ -483,7 +514,7 @@
                 pendingProjectSearchSubmit = false;
                 window.clearTimeout(projectSearchTimer);
                 event.preventDefault();
-                projectFilterForm.submit();
+                submitProjectSearch();
             }
         });
 
@@ -491,7 +522,7 @@
             window.clearTimeout(projectSearchTimer);
             if (pendingProjectSearchSubmit) {
                 pendingProjectSearchSubmit = false;
-                projectFilterForm.submit();
+                submitProjectSearch();
             }
         });
     }
@@ -506,6 +537,9 @@
             }
 
             projectSearchInput.value = trigger.dataset.projectSearch || '';
+            if (projectSearchFocusFlag) {
+                projectSearchFocusFlag.value = '1';
+            }
             projectFilterForm.submit();
         }
 
@@ -545,7 +579,7 @@
 
         form.action = button.getAttribute('data-void-url');
         form.reset();
-        document.querySelector('#voidProjectModal .modal-title').textContent = `Delete: ${projectName}`;
+        document.querySelector('#voidProjectModal .modal-title').textContent = `{{ t("project.delete_prefix") }}: ${projectName}`;
         modal.show();
     }
 </script>

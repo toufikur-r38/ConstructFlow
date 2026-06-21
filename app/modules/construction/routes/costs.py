@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, timezone, timedelta
 import logging
 from app.extensions import cache
-from app.utils.decorators import write_access_required
+from app.utils.decorators import module_access_required, write_access_required
 from app.extensions import db , limiter
 from app.models import Project, CostEntry
 from app.utils.db_errors import friendly_database_error
@@ -96,8 +96,9 @@ def _render_add_cost(late_project=None, form_data=None):
  
  
 @costs_bp.route('/add-cost', methods=['GET', 'POST'])
-@login_required                   
-@write_access_required            
+@login_required
+@module_access_required('construction')
+@write_access_required
 @limiter.limit("30 per minute")   
 def add_cost():
  
@@ -201,12 +202,15 @@ def add_cost():
         )
         flash("Cost entry saved successfully!", "success")
         return redirect(url_for('costs.add_cost'))
- 
-    return _render_add_cost()
+
+    selected_project_id = request.args.get('project_id', '').strip()
+    initial_form_data = {'project_id': selected_project_id} if selected_project_id else None
+    return _render_add_cost(form_data=initial_form_data)
 
 
 @costs_bp.route('/add-late-cost/<int:project_id>', methods=['GET', 'POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 @limiter.limit("10 per minute")
 def add_late_cost(project_id):
@@ -304,6 +308,7 @@ def add_late_cost(project_id):
 
 @costs_bp.route('/view-costs')
 @login_required
+@module_access_required('construction')
 def view_costs():
     project_id     = request.args.get('project_filter', '').strip()
     cost_type      = request.args.get('type_filter', '').strip()
@@ -370,6 +375,7 @@ def view_costs():
 
 @costs_bp.route('/view-costs/pdf')
 @login_required
+@module_access_required('construction')
 def download_pdf():
     project_id     = request.args.get('project_filter', '').strip()
     cost_type      = request.args.get('type_filter', '').strip()
@@ -430,7 +436,7 @@ def download_pdf():
         )
         filename = f"{safe_name}_Expenditure_Report.pdf"
     else:
-        filename = f"ConstructFlow_Expenditure_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        filename = f"SR_Expenditure_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
     return Response(
         pdf_bytes,
         mimetype='application/pdf',

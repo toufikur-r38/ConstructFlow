@@ -8,7 +8,7 @@ from sqlalchemy import func
 from app.extensions import db, limiter
 from app.models import CostEntry, Project
 from app.extensions import cache
-from app.utils.decorators import  write_access_required
+from app.utils.decorators import module_access_required, write_access_required
 from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import get_pagination_args
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, get_dropdown_options
@@ -41,6 +41,7 @@ def _render_add_project(all_projects, form_data=None):
  
 @projects_bp.route('/add-project', methods=['GET', 'POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 @limiter.limit("20 per minute")
 def add_project():
@@ -163,13 +164,21 @@ def add_project():
     return _render_add_project(all_projects)
 @projects_bp.route('/view-projects')
 @login_required
+@module_access_required('construction')
 def view_projects():
     sector_filter = request.args.get('sector_filter')
     search_query = request.args.get('search', '').strip()
+    project_id_filter = request.args.get('project_id', '').strip()
     status_filter = request.args.get('status_filter', 'all').strip()
     page, per_page = get_pagination_args(request)
     
     query = Project.query.filter_by(is_void=False)
+
+    if project_id_filter:
+        try:
+            query = query.filter(Project.id == int(project_id_filter))
+        except (TypeError, ValueError):
+            pass
 
     if sector_filter and sector_filter != 'all':
         query = query.filter(Project.sector == sector_filter)

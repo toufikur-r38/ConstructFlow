@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("archive.removed_projects_archive") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 
 <style>
@@ -22,25 +23,25 @@
 <div class="container-fluid py-4 animation-fade-in">
     <div class="mb-4 d-flex justify-content-between align-items-end">
         <div>
-            <h3 class="fw-bold mb-1 text-warning"><i class="fas fa-folder-minus me-2"></i>Removed Projects Archive</h3>
-            <p class="text-muted small mb-0">View and restore soft-deleted projects.</p>
+            <h3 class="fw-bold mb-1 text-warning"><i class="fas fa-folder-minus me-2"></i>{{ t("archive.removed_projects_archive") }}</h3>
+            <p class="text-muted small mb-0">{{ t("archive.removed_projects_subtitle") }}</p>
         </div>
-        <a href="{{ url_for('construction_admin.audit_log') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-arrow-left me-2"></i>Back to Audit Hub</a>
+        <a href="{{ url_for('construction_admin.audit_log') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-arrow-left me-2"></i>{{ t("audit.back_to_audit_hub") }}</a>
     </div>
 
     <div class="filter-node mb-4">
         <div class="row g-3">
             <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Search Project</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("archive.search_project") }}</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="searchProject" class="form-control form-control-custom border-start-0" placeholder="Type project name...">
+                    <input type="text" id="searchProject" class="form-control form-control-custom border-start-0" placeholder="{{ t("audit.type_project_name") }}">
                 </div>
             </div>
             <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted text-uppercase">Sector Filter</label>
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("archive.sector_filter") }}</label>
                 <select id="filterSector" class="form-select form-control-custom">
-                    <option value="all">All Sectors</option>
+                    <option value="all">{{ t("archive.all_sectors") }}</option>
                     {% set sectors = [] %}
                     {% for p in projects %}
                         {% if p.sector and p.sector not in sectors %}
@@ -57,40 +58,40 @@
         <table class="table custom-table" id="archiveTable">
             <thead>
                 <tr>
-                    <th>Project Name & Sector</th>
-                    <th>Firm Name</th>
-                    <th>Contract Price</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
+                    <th>{{ t("archive.project_name_sector") }}</th>
+                    <th>{{ t("archive.firm_name") }}</th>
+                    <th>{{ t("archive.contract_price") }}</th>
+                    <th>{{ t("archive.status") }}</th>
+                    <th class="text-end">{{ t("archive.actions") }}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in projects %}
                 <tr class="archive-row" data-sector="{{ p.sector }}">
                     <td>
-                        <div class="fw-bold text-dark proj-name">{{ p.project_name }}</div>
+                        <div class="fw-bold text-dark proj-name project-name-glass">{{ p.project_name }}</div>
                         <div class="text-muted small text-uppercase fw-bold">({{ p.sector }})</div>
                     </td>
-                    <td class="text-secondary small">{{ p.firm_name or 'N/A' }}</td>
+                    <td class="text-secondary small">{{ p.firm_name or t("common.not_available") }}</td>
                     <td class="fw-bold text-danger">৳ {{ "{:,.2f}".format(p.contract_price or 0) }}</td>
-                    <td><span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">REMOVED</span></td>
+                    <td><span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">{{ t("archive.removed") }}</span></td>
                     <td class="text-end">
                         <button type="button"
                                 class="btn btn-sm btn-success shadow-sm fw-bold"
                                 data-restore-url="{{ url_for('construction_admin.restore_project', id=p.id) }}"
                                 data-item-name="{{ p.project_name }}"
                                 onclick="openRestoreModal(this)">
-                            <i class="fas fa-undo me-1"></i> Restore
+                            <i class="fas fa-undo me-1"></i> {{ t("archive.restore") }}
                         </button>
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-center py-5 text-muted"><i class="fas fa-box-open fs-2 mb-3 d-block"></i>No removed projects found.</td></tr>
+                <tr><td colspan="5" class="text-center py-5 text-muted"><i class="fas fa-box-open fs-2 mb-3 d-block"></i>{{ t("archive.no_removed_projects") }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% set pagination_label = 'removed projects' %}
+    {% set pagination_label = t('archive.removed_projects') %}
     {% include "_pagination.html" %}
 </div>
 
@@ -98,29 +99,29 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i>Restore Record</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i>{{ t("archive.restore_record") }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="restoreForm" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body p-4 text-center">
                     <i class="fas fa-exclamation-circle text-success fs-1 mb-3"></i>
-                    <p class="mb-1">You are about to restore:</p>
+                    <p class="mb-1">{{ t("archive.about_to_restore") }}</p>
                     <h5 class="fw-bold text-dark" id="restoreItemName"></h5>
-                    <p class="text-muted small mt-3">This will change its status to active and include it in financial reports again.</p>
+                    <p class="text-muted small mt-3">{{ t("archive.project_restore_help") }}</p>
                     <div class="mt-3 text-start">
-                        <label for="restorePassword" class="form-label fw-bold">Confirm Admin Password <span class="text-danger">*</span></label>
+                        <label for="restorePassword" class="form-label fw-bold">{{ t("archive.confirm_admin_password") }} <span class="text-danger">*</span></label>
                         <input type="password"
                                id="restorePassword"
                                name="confirm_password"
                                class="form-control js-password-toggle"
-                               placeholder="Enter password to authorize"
+                               placeholder="{{ t("archive.enter_password_to_authorize") }}"
                                required>
                     </div>
                 </div>
                 <div class="modal-footer bg-light justify-content-center">
-                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">Confirm Restore</button>
+                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">{{ t("common.cancel") }}</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">{{ t("archive.confirm_restore") }}</button>
                 </div>
             </form>
         </div>

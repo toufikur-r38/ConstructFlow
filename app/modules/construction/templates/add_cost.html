@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("cost.construction_expenditure_entry") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 
@@ -10,11 +11,11 @@
         <div class="col-md-10">
             <div class="card shadow-sm border-top border-4 border-success">
                 <div class="card-body p-4">
-                    <h4 class="fw-bold mb-4" style="color: var(--navy);">🏗️ Construction Expenditure Entry</h4>
+                    <h4 class="fw-bold mb-4" style="color: var(--navy);"><i class="fas fa-hard-hat text-warning me-2"></i>{{ t("cost.construction_expenditure_entry") }}</h4>
 
                     {% if late_project %}
                     <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark small">
-                        <strong>Completed project:</strong> This entry will be added as a late cost. A clear remark is required for audit history.
+                        <strong>{{ t("cost.completed_project") }}:</strong> {{ t("cost.late_cost_notice") }}
                     </div>
                     {% endif %}
 
@@ -22,15 +23,15 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">1. Project Site <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">1. {{ t("cost.project_site") }} <span class="text-danger">*</span></label>
                                 {% if late_project %}
                                 <input type="hidden" name="project_id" value="{{ late_project.id }}">
                                 <select class="form-select" disabled>
-                                    <option selected>{{ late_project.project_name }} (Completed)</option>
+                                    <option selected>{{ late_project.project_name }} ({{ t("cost.completed") }})</option>
                                 </select>
                                 {% else %}
                                 <select name="project_id" class="form-select" required>
-                                    <option value="" selected disabled>Choose project...</option>
+                                    <option value="" selected disabled>{{ t("cost.choose_project") }}</option>
                                     {% for project in projects %}
                                     <option value="{{ project.id }}" {% if form.get('project_id') == project.id|string %}selected{% endif %}>{{ project.project_name }}</option>
                                     {% endfor %}
@@ -39,14 +40,14 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">2. Expense Date <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">2. {{ t("cost.expense_date") }} <span class="text-danger">*</span></label>
                                 <input type="date" name="date" class="form-control" id="entryDate" value="{{ form.get('date', '') }}" required>
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">3. Category <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">3. {{ t("cost.category") }} <span class="text-danger">*</span></label>
                                 <select name="cost_type" class="form-select search-select" required>
-                                    <option value="">Search Category...</option>
+                                    <option value="">{{ t("cost.search_category") }}</option>
                                     {% for cost_type in cost_types %}
                                     <option value="{{ cost_type }}" {% if form.get('cost_type') == cost_type %}selected{% endif %}>{{ cost_type }}</option>
                                     {% endfor %}
@@ -54,26 +55,26 @@
                             </div>
 
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">4. Quantity <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">4. {{ t("cost.quantity") }} <span class="text-danger">*</span></label>
                                 <input type="number" id="qty" name="quantity" class="form-control" value="{{ form.get('quantity', '') }}" placeholder="0" step="any" required>
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" id="negativeQtyToggle">
-                                    <label class="form-check-label small fw-semibold" for="negativeQtyToggle">Make quantity negative</label>
+                                    <label class="form-check-label small fw-semibold" for="negativeQtyToggle">{{ t("cost.make_quantity_negative") }}</label>
                                 </div>
                             </div>
                             
                             <div class="col-md-3">
-                                <label class="form-label fw-bold">5. Per Unit Rate (TK) <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">5. {{ t("cost.per_unit_rate_tk") }} <span class="text-danger">*</span></label>
                                 <input type="number" id="rate" name="unit_rate" class="form-control" value="{{ form.get('unit_rate', '') }}" placeholder="0.00" step="any" required>
                                 <div class="form-check form-switch mt-2">
                                     <input class="form-check-input" type="checkbox" id="negativeRateToggle">
-                                    <label class="form-check-label small fw-semibold" for="negativeRateToggle">Make rate negative</label>
+                                    <label class="form-check-label small fw-semibold" for="negativeRateToggle">{{ t("cost.make_rate_negative") }}</label>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="p-2 bg-light rounded border text-center h-100 d-flex flex-column justify-content-center">
-                                    <label class="form-label fw-bold text-danger mb-0 small">6. TOTAL AMOUNT </label>
+                                    <label class="form-label fw-bold text-danger mb-0 small">6. {{ t("cost.total_amount_upper") }} </label>
                                     <h3 class="mb-0 text-danger fw-bold">৳ <span id="totalLabel">0.00</span></h3>
                                     <input type="hidden" name="total_amount" id="totalInput" value="0">
                                 </div>
@@ -81,21 +82,22 @@
 
                             <div class="col-md-10">
                                 <label class="form-label fw-bold">
-                                    7. Details / Remarks{% if late_project %} <span class="text-danger">*</span>{% endif %}
+                                    7. {{ t("cost.details_remarks") }}{% if late_project %} <span class="text-danger">*</span>{% endif %}
                                 </label>
                                 <input type="text"
                                        name="remarks"
                                        id="remarksInput"
                                        class="form-control"
                                        maxlength="500"
+                                       autocomplete="off"
                                        value="{{ form.get('remarks', '') }}"
-                                       placeholder="{% if late_project %}Required: explain why this cost is being added after completion{% else %}e.g. 100 bags Cement, Bill #452{% endif %}"
+                                       placeholder="{% if late_project %}{{ t("cost.late_remark_placeholder") }}{% else %}{{ t("cost.remarks_example") }}{% endif %}"
                                        {% if late_project %}required{% endif %}>
                             </div>
 
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm">
-                                    {% if late_project %}SAVE LATE COST{% else %}SAVE ENTRY{% endif %}
+                                    {% if late_project %}{{ t("cost.save_late_cost") }}{% else %}{{ t("cost.save_entry") }}{% endif %}
                                 </button>
                             </div>
                         </div>
@@ -111,32 +113,32 @@
         <div class="col-md-11">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-secondary text-white p-3 d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>Latest Entries Ledger</h6>
-                    <span class="badge bg-light text-dark">System Time: {{ current_time }}</span>
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>{{ t("cost.latest_entries_ledger") }}</h6>
+                    <span class="badge bg-light text-dark">{{ t("cost.system_time") }}: {{ current_time }}</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="px-3 pt-2 pb-1 small text-muted text-start">
-                        <span class="text-danger fw-semibold">Note:</span>
-                        Negative amounts represent refunds, reimbursements, or accounting adjustments.
+                        <span class="text-danger fw-semibold">{{ t("cost.note") }}:</span>
+                        {{ t("cost.negative_amounts_note") }}
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 text-center" style="white-space: nowrap;">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Project</th>
-                                    <th>Date</th>
-                                    <th>Category</th>
-                                    <th>Qty</th>
-                                    <th>Rate</th>
-                                    <th>Total (TK)</th>
-                                    <th>Remarks</th>
-                                    <th style="background-color: #444;">Logged Timestamp</th>
+                                    <th>{{ t("cost.project_table") }}</th>
+                                    <th>{{ t("common.date") }}</th>
+                                    <th>{{ t("cost.category_table") }}</th>
+                                    <th>{{ t("cost.qty") }}</th>
+                                    <th>{{ t("cost.rate") }}</th>
+                                    <th>{{ t("cost.total_tk") }}</th>
+                                    <th>{{ t("common.remarks") }}</th>
+                                    <th style="background-color: #444;">{{ t("cost.logged_timestamp") }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for cost in recent_costs %}
                                 <tr>
-                                    <td class="fw-bold text-primary text-start">{{ cost.project.project_name }}</td>
+                                    <td class="fw-bold text-primary text-start"><span class="project-name-glass">{{ cost.project.project_name }}</span></td>
                                     <td>{{ cost.date }}</td>
                                     <td><span class="badge bg-info text-dark">{{ cost.cost_type }}</span></td>
                                     <td>{{ cost.quantity }}</td>
@@ -149,7 +151,7 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">No entries found in the database.</td>
+                                    <td colspan="8" class="text-center text-muted py-4">{{ t("cost.no_entries_found") }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -170,7 +172,7 @@
     $(document).ready(function () {
         $('.search-select').select2({
             theme: 'bootstrap-5',
-            placeholder: 'Type to search category...',
+            placeholder: '{{ t("cost.type_to_search_category") }}',
             allowClear: true,
             width: '100%'
         });
@@ -265,9 +267,9 @@
     today.setHours(0, 0, 0, 0);
     const isFutureDate = selectedDate && selectedDate > today;
 
-    let alertTitle = 'Confirm Entry?';
+    let alertTitle = '{{ t("cost.confirm_entry_title") }}';
 
-    let alertHtml = `You are about to save an expenditure of <strong class="text-danger">৳ ${totalAmountText}</strong>. <br>Are you sure the details are correct?`;
+    let alertHtml = `{{ t("cost.default_confirm_intro") }} <strong class="text-danger">BDT ${totalAmountText}</strong>. <br>{{ t("cost.default_confirm_question") }}`;
 
     let confirmBtnColor = '#198754';
 
@@ -275,8 +277,8 @@
 
     if (isLateEntry && !remarksValue) {
         Swal.fire({
-            title: 'Remark Required',
-            text: 'Please explain why this cost is being added after project completion.',
+            title: '{{ t("cost.remark_required") }}',
+            text: '{{ t("cost.late_remark_required_text") }}',
             icon: 'warning',
             confirmButtonColor: '#dc3545',
             backdrop: `rgba(26, 42, 108, 0.4)`
@@ -286,18 +288,18 @@
 
     if (isFutureDate) {
 
-        alertTitle = 'Confirm Future Date?';
+        alertTitle = '{{ t("cost.confirm_future_date") }}';
 
         alertHtml = `
-            You are saving an expenditure dated
+            {{ t("cost.future_date_intro") }}
             <strong class="text-warning">${entryDateValue}</strong>,
-            which is after today.
+            {{ t("cost.future_date_after_today") }}
             <br><br>
-            Amount:
-            <strong class="text-danger">৳ ${totalAmountText}</strong>
+            {{ t("cost.amount_label") }}
+            <strong class="text-danger">BDT ${totalAmountText}</strong>
             <br><br>
             <span class="text-muted small">
-                Please confirm this future-dated entry is intentional.
+                {{ t("cost.future_date_help") }}
             </span>
         `;
 
@@ -308,15 +310,15 @@
 
     if (currentTotal < 0) {
 
-        alertTitle = 'Confirm Negative Adjustment?';
+        alertTitle = '{{ t("cost.confirm_negative_adjustment") }}';
 
         alertHtml = `
-            You have entered a negative balance of
-            <strong class="text-danger">৳ ${totalAmountText}</strong>.
+            {{ t("cost.negative_balance_intro") }}
+            <strong class="text-danger">BDT ${totalAmountText}</strong>.
             <br><br>
             <span class="text-muted small">
-                Please verify that this is an intentional
-                <b>Refund, Credit, or Material Reversal</b> record.
+                {{ t("cost.negative_balance_help_prefix") }}
+                <b>{{ t("cost.refund_credit_material_reversal") }}</b> {{ t("cost.record_label") }}
             </span>
         `;
 
@@ -327,18 +329,17 @@
 
     if (isFutureDate && currentTotal < 0) {
 
-        alertTitle = 'Confirm Future Negative Adjustment?';
+        alertTitle = '{{ t("cost.confirm_future_negative_adjustment") }}';
 
         alertHtml = `
-            You are saving a future-dated negative entry for
+            {{ t("cost.future_negative_intro") }}
             <strong class="text-warning">${entryDateValue}</strong>.
             <br><br>
-            Amount:
-            <strong class="text-danger">৳ ${totalAmountText}</strong>
+            {{ t("cost.amount_label") }}
+            <strong class="text-danger">BDT ${totalAmountText}</strong>
             <br><br>
             <span class="text-muted small">
-                Please verify this is an intentional refund, credit, material reversal,
-                or other planned adjustment.
+                {{ t("cost.future_negative_help") }}
             </span>
         `;
 
@@ -349,23 +350,23 @@
 
     if (bothQuantityAndRateNegative) {
 
-        alertTitle = isFutureDate ? 'Confirm Future Double-Negative Entry?' : 'Confirm Double-Negative Entry?';
+        alertTitle = isFutureDate ? '{{ t("cost.confirm_future_double_negative_entry") }}' : '{{ t("cost.confirm_double_negative_entry") }}';
 
         alertHtml = `
-            Quantity and unit rate are both negative.
+            {{ t("cost.quantity_rate_negative") }}
             <br><br>
-            Quantity:
+            {{ t("cost.quantity_label") }}
             <strong class="text-danger">${qtyValue}</strong>
             <br>
-            Unit Rate:
-            <strong class="text-danger">৳ ${rateValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
-            ${isFutureDate ? `<br><br>Date: <strong class="text-warning">${entryDateValue}</strong>` : ''}
+            {{ t("cost.unit_rate_label") }}
+            <strong class="text-danger">BDT ${rateValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+            ${isFutureDate ? `<br><br>{{ t("cost.date_label") }} <strong class="text-warning">${entryDateValue}</strong>` : ''}
             <br><br>
-            Multiplying two negative values creates a
-            <strong class="text-success">positive addition of ৳ ${totalAmountText}</strong>.
+            {{ t("cost.double_negative_creates") }}
+            <strong class="text-success">{{ t("cost.positive_addition_of") }} BDT ${totalAmountText}</strong>.
             <br><br>
             <span class="text-muted small">
-                Please confirm this is intentional before saving.
+                {{ t("cost.confirm_intentional_before_saving") }}
             </span>
         `;
 
@@ -375,8 +376,8 @@
     }
 
     if (isLateEntry) {
-        if (alertTitle === 'Confirm Entry?') {
-            alertTitle = 'Confirm Late Cost?';
+        if (alertTitle === '{{ t("cost.confirm_entry_title") }}') {
+            alertTitle = '{{ t("cost.confirm_late_cost") }}';
             confirmBtnColor = '#e65100';
             alertIcon = 'warning';
         }
@@ -384,7 +385,7 @@
         alertHtml += `
             <br><br>
             <div class="alert alert-warning py-2 px-3 mb-0 text-start">
-                This project is already completed. This entry will be saved as an intentional late cost.
+                {{ t("cost.late_cost_warning") }}
             </div>
         `;
     }
@@ -396,16 +397,16 @@
         showCancelButton: true,
         confirmButtonColor: confirmBtnColor,
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-check"></i> Yes, save entry!',
-        cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+        confirmButtonText: '<i class="fas fa-check"></i> {{ t("cost.yes_save_entry") }}',
+        cancelButtonText: '<i class="fas fa-times"></i> {{ t("common.cancel") }}',
         backdrop: `rgba(26, 42, 108, 0.4)`
     }).then((result) => {
 
         if (result.isConfirmed) {
 
             Swal.fire({
-                title: 'Saved!',
-                text: 'The entry has been securely logged.',
+                title: '{{ t("cost.saved") }}',
+                text: '{{ t("cost.entry_logged") }}',
                 icon: 'success',
                 timer: 1200,
                 showConfirmButton: false

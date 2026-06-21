@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("audit.security_audit_hub") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 
 <style>
@@ -57,16 +58,16 @@
 <div class="container-fluid py-4">
     <div class="mb-4">
         <h3 class="fw-bold" style="color: var(--navy);">
-            <i class="fas fa-shield-alt me-2 text-danger"></i>Security Audit Hub
+            <i class="fas fa-shield-alt me-2 text-danger"></i>{{ t("audit.security_audit_hub") }}
         </h3>
-        <p class="text-muted small">System-wide tracking of modifications and administrative overrides.</p>
+        <p class="text-muted small">{{ t("audit.security_subtitle") }}</p>
     </div>
 
     <div class="row g-3 mb-5 text-center">
         <div class="col-md-3">
             <div class="card audit-card shadow-sm border-0 border-start border-4 border-danger h-100" onclick="document.getElementById('sec-removed-costs').scrollIntoView({behavior: 'smooth'})">
                 <div class="card-body">
-                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Removed Costs</h6>
+                    <h6 class="text-muted small text-uppercase fw-bold mb-1">{{ t("audit.removed_costs") }}</h6>
                     <h3 class="fw-bold mb-0 text-danger">{{ voided_costs_count }}</h3>
                     <i class="fas fa-ban mt-2 opacity-25"></i>
                 </div>
@@ -75,7 +76,7 @@
         <div class="col-md-3">
             <div class="card audit-card shadow-sm border-0 border-start border-4 border-warning h-100" onclick="document.getElementById('sec-removed-projects').scrollIntoView({behavior: 'smooth'})">
                 <div class="card-body">
-                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Removed Projects</h6>
+                    <h6 class="text-muted small text-uppercase fw-bold mb-1">{{ t("audit.removed_projects") }}</h6>
                     <h3 class="fw-bold mb-0 text-warning">{{ voided_projects_count }}</h3>
                     <i class="fas fa-folder-minus mt-2 opacity-25"></i>
                 </div>
@@ -84,7 +85,7 @@
         <div class="col-md-3">
             <div class="card audit-card shadow-sm border-0 border-start border-4 border-info h-100" onclick="document.getElementById('sec-edit-costs').scrollIntoView({behavior: 'smooth'})">
                 <div class="card-body">
-                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Edited Costs</h6>
+                    <h6 class="text-muted small text-uppercase fw-bold mb-1">{{ t("audit.edited_costs") }}</h6>
                     <h3 class="fw-bold mb-0 text-info">{{ edited_costs_count }}</h3>
                     <i class="fas fa-edit mt-2 opacity-25"></i>
                 </div>
@@ -93,7 +94,7 @@
         <div class="col-md-3">
             <div class="card audit-card shadow-sm border-0 border-start border-4 border-primary h-100" onclick="document.getElementById('sec-edit-projects').scrollIntoView({behavior: 'smooth'})">
                 <div class="card-body">
-                    <h6 class="text-muted small text-uppercase fw-bold mb-1">Edited Projects</h6>
+                    <h6 class="text-muted small text-uppercase fw-bold mb-1">{{ t("audit.edited_projects") }}</h6>
                     <h3 class="fw-bold mb-0 text-primary">{{ edited_projects_count }}</h3>
                     <i class="fas fa-drafting-compass mt-2 opacity-25"></i>
                 </div>
@@ -102,18 +103,18 @@
     </div>
 
     <div id="sec-removed-costs" class="section-header d-flex justify-content-between align-items-center">
-        <h6 class="fw-bold text-uppercase text-danger mb-0">Recent Removed Costs</h6>
-        <a href="{{ url_for('construction_admin.all_removed_costs') }}" class="btn btn-sm btn-outline-danger shadow-sm">View All Logs <i class="fas fa-arrow-right ms-1"></i></a>
+        <h6 class="fw-bold text-uppercase text-danger mb-0">Recent {{ t("audit.removed_costs") }}</h6>
+        <a href="{{ url_for('construction_admin.all_removed_costs') }}" class="btn btn-sm btn-outline-danger shadow-sm">{{ t("audit.view_all_logs") }} <i class="fas fa-arrow-right ms-1"></i></a>
     </div>
     <div class="table-container">
         <table class="table table-hover align-middle mb-0">
             <thead class="custom-thead">
                 <tr>
-                    <th>Date Removed</th>
-                    <th>Project</th>
-                    <th>Removed By</th>
-                    <th>Reason</th>
-                    <th>Snapshot</th>
+                    <th>{{ t("audit.date_removed") }}</th>
+                    <th>{{ t("audit.project") }}</th>
+                    <th>{{ t("audit.removed_by") }}</th>
+                    <th>{{ t("audit.reason") }}</th>
+                    <th>{{ t("audit.snapshot") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -121,15 +122,15 @@
                 {% set data = log.data_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.deleted_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold">{{ log.project_name_snapshot or data.project_name }}</td>
+                    <td class="fw-bold"><span class="project-name-glass">{{ log.project_name_snapshot or data.project_name }}</span></td>
                     <td><span class="badge bg-secondary">{{ log.remover.username }}</span></td>
                     <td class="small">{{ log.void_reason }}</td>
                     <td>
-                        <button class="btn btn-sm btn-link text-danger" data-bs-toggle="collapse" data-bs-target="#costRemove{{ log.id }}">View Data</button>
+                        <button class="btn btn-sm btn-link text-danger" data-bs-toggle="collapse" data-bs-target="#costRemove{{ log.id }}">{{ t("audit.view_data") }}</button>
                         <div class="collapse mt-2" id="costRemove{{ log.id }}">
                             <div class="snapshot-box">
-                                <strong>Category:</strong> {{ data.category or data.cost_type }}<br>
-                                <strong>Amount:</strong> ৳{{ "{:,.2f}".format(data.total_amount|float) if data.total_amount else "0.00" }}
+                                <strong>{{ t("audit.category") }}</strong> {{ data.category or data.cost_type }}<br>
+                                <strong>{{ t("audit.amount") }}</strong> ৳{{ "{:,.2f}".format(data.total_amount|float) if data.total_amount else "0.00" }}
                             </div>
                         </div>
                     </td>
@@ -140,18 +141,18 @@
     </div>
 
     <div id="sec-removed-projects" class="section-header d-flex justify-content-between align-items-center" style="border-left-color: #ffc107;">
-        <h6 class="fw-bold text-uppercase text-warning mb-0">Recent Removed Projects</h6>
-        <a href="{{ url_for('construction_admin.all_removed_projects') }}" class="btn btn-sm btn-outline-warning text-dark shadow-sm">View All Logs <i class="fas fa-arrow-right ms-1"></i></a>
+        <h6 class="fw-bold text-uppercase text-warning mb-0">Recent {{ t("audit.removed_projects") }}</h6>
+        <a href="{{ url_for('construction_admin.all_removed_projects') }}" class="btn btn-sm btn-outline-warning text-dark shadow-sm">{{ t("audit.view_all_logs") }} <i class="fas fa-arrow-right ms-1"></i></a>
     </div>
     <div class="table-container">
         <table class="table table-hover align-middle mb-0">
             <thead class="custom-thead">
                 <tr>
-                    <th>Date Removed</th>
-                    <th>Project Name</th>
-                    <th>Removed By</th>
-                    <th>Reason</th>
-                    <th>Costs Removed</th>
+                    <th>{{ t("audit.date_removed") }}</th>
+                    <th>{{ t("audit.project_name") }}</th>
+                    <th>{{ t("audit.removed_by") }}</th>
+                    <th>{{ t("audit.reason") }}</th>
+                    <th>{{ t("audit.costs_removed") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -159,7 +160,7 @@
                 {% set p_data = log.project_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.deleted_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold">{{ p_data.project_name }}</td>
+                    <td class="fw-bold"><span class="project-name-glass">{{ p_data.project_name }}</span></td>
                     <td><span class="badge bg-secondary">{{ log.remover.username }}</span></td>
                     <td class="small">{{ log.void_reason }}</td>
                     <td class="text-center"><span class="badge rounded-pill bg-danger">{{ log.costs_voided_count or p_data.linked_costs_count }}</span></td>
@@ -170,17 +171,17 @@
     </div>
 
     <div id="sec-edit-costs" class="section-header d-flex justify-content-between align-items-center" style="border-left-color: #0dcaf0;">
-        <h6 class="fw-bold text-uppercase text-info mb-0">Recent Cost Edits</h6>
-        <a href="{{ url_for('construction_admin.all_edited_costs') }}" class="btn btn-sm btn-outline-info text-dark shadow-sm">View All Cost Edits <i class="fas fa-arrow-right ms-1"></i></a>
+        <h6 class="fw-bold text-uppercase text-info mb-0">{{ t("audit.recent_cost_edits") }}</h6>
+        <a href="{{ url_for('construction_admin.all_edited_costs') }}" class="btn btn-sm btn-outline-info text-dark shadow-sm">{{ t("audit.view_all_cost_edits") }} <i class="fas fa-arrow-right ms-1"></i></a>
     </div>
     <div class="table-container">
         <table class="table table-hover align-middle mb-0">
             <thead class="custom-thead">
                 <tr>
-                    <th>Date Edited</th>
-                    <th>Project</th>
-                    <th>Edited By</th>
-                    <th>Changes</th>
+                    <th>{{ t("audit.date_edited") }}</th>
+                    <th>{{ t("audit.project") }}</th>
+                    <th>{{ t("audit.edited_by") }}</th>
+                    <th>{{ t("audit.changes") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -189,14 +190,14 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="small fw-bold">{{ log.project_name_snapshot or after.project_name }}</td>
+                    <td class="small fw-bold"><span class="project-name-glass">{{ log.project_name_snapshot or after.project_name }}</span></td>
                     <td><span class="badge bg-secondary">{{ log.editor.username }}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-info text-dark" data-bs-toggle="collapse" data-bs-target="#costEdit{{ log.id }}">Compare All Data</button>
+                        <button class="btn btn-sm btn-outline-info text-dark" data-bs-toggle="collapse" data-bs-target="#costEdit{{ log.id }}">{{ t("audit.compare_all_data") }}</button>
                         <div class="collapse mt-2" id="costEdit{{ log.id }}">
                             <div class="snapshot-box">
-                                <div class="text-danger mb-2"><strong>Before Edit:</strong> <br> {{ log.before_snapshot }}</div>
-                                <div class="text-success"><strong>After Edit:</strong> <br> {{ log.after_snapshot }}</div>
+                                <div class="text-danger mb-2"><strong>{{ t("audit.before_edit") }}</strong> <br> {{ log.before_snapshot }}</div>
+                                <div class="text-success"><strong>{{ t("audit.after_edit") }}</strong> <br> {{ log.after_snapshot }}</div>
                             </div>
                         </div>
                     </td>
@@ -207,17 +208,17 @@
     </div>
 
     <div id="sec-edit-projects" class="section-header d-flex justify-content-between align-items-center" style="border-left-color: #0d6efd;">
-        <h6 class="fw-bold text-uppercase text-primary mb-0">Recent Project Edits</h6>
-        <a href="{{ url_for('construction_admin.all_edited_projects') }}" class="btn btn-sm btn-outline-primary shadow-sm">View All Project Edits <i class="fas fa-arrow-right ms-1"></i></a>
+        <h6 class="fw-bold text-uppercase text-primary mb-0">{{ t("audit.recent_project_edits") }}</h6>
+        <a href="{{ url_for('construction_admin.all_edited_projects') }}" class="btn btn-sm btn-outline-primary shadow-sm">{{ t("audit.view_all_project_edits") }} <i class="fas fa-arrow-right ms-1"></i></a>
     </div>
     <div class="table-container mb-5">
         <table class="table table-hover align-middle mb-0">
             <thead class="custom-thead">
                 <tr>
-                    <th>Date Edited</th>
-                    <th>Project Name</th>
-                    <th>Edited By</th>
-                    <th>Changes</th>
+                    <th>{{ t("audit.date_edited") }}</th>
+                    <th>{{ t("audit.project_name") }}</th>
+                    <th>{{ t("audit.edited_by") }}</th>
+                    <th>{{ t("audit.changes") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -225,14 +226,14 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold">{{ after.project_name or log.project_name_snapshot }}</td>
+                    <td class="fw-bold"><span class="project-name-glass">{{ after.project_name or log.project_name_snapshot }}</span></td>
                     <td><span class="badge bg-secondary">{{ log.editor.username }}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#projEdit{{ log.id }}">Compare</button>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#projEdit{{ log.id }}">{{ t("audit.compare") }}</button>
                         <div class="collapse mt-2" id="projEdit{{ log.id }}">
                             <div class="snapshot-box">
-                                <div class="text-danger mb-2"><strong>Before:</strong> <br> {{ log.before_snapshot }}</div>
-                                <div class="text-success"><strong>After:</strong> <br> {{ log.after_snapshot }}</div>
+                                <div class="text-danger mb-2"><strong>{{ t("audit.before") }}</strong> <br> {{ log.before_snapshot }}</div>
+                                <div class="text-success"><strong>{{ t("audit.after") }}</strong> <br> {{ log.after_snapshot }}</div>
                             </div>
                         </div>
                     </td>

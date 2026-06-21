@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}{{ t(title_key) }} - {{ t("common.app_name") }}{% endblock %}
+{% block content %}
+
+<div class="container-fluid mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-xl-5">
+            <div class="card border-0 shadow-sm" style="border-radius: 8px;">
+                <div class="card-body p-5 text-center">
+                    <div class="display-5 fw-bold text-muted mb-3">{{ status_code }}</div>
+                    <h3 class="fw-bold mb-3" style="color: var(--navy);">{{ t(title_key) }}</h3>
+                    <p class="text-muted mb-4">{{ t(message_key) }}</p>
+                    <a href="{{ module_home_url or url_for('module_hub') }}" class="btn btn-primary px-4">
+                        <i class="fas fa-home me-2"></i>{{ t("errors.back_to_home") }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

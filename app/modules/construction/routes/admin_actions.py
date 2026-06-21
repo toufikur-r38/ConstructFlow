@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash
 import json
 from decimal import Decimal, InvalidOperation
 from app.extensions import cache
-from app.utils.decorators import admin_required, write_access_required
+from app.utils.decorators import admin_required, module_access_required, write_access_required
 from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import DEFAULT_LOG_PER_PAGE, get_pagination_args
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, COST_TYPE, get_dropdown_options
@@ -66,6 +66,7 @@ def _restore_project_voided_remark(remark):
 
 @construction_admin_bp.route('/void-project/<int:project_id>', methods=['POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 @limiter.limit("10 per minute")
 def void_project(project_id):
@@ -143,6 +144,7 @@ def void_project(project_id):
 
 @construction_admin_bp.route('/restore-project/<int:id>', methods=['POST'])
 @login_required
+@module_access_required('construction')
 @admin_required
 def restore_project(id):
     project = db.get_or_404(Project, id)
@@ -238,6 +240,7 @@ def _project_snapshot(project: Project) -> dict:
  
 @construction_admin_bp.route('/edit-project/<int:project_id>', methods=['GET', 'POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 def edit_project(project_id):
     project = db.session.get(Project, project_id)
@@ -398,6 +401,7 @@ def edit_project(project_id):
  
 @construction_admin_bp.route('/void-cost/<int:cost_id>', methods=['POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 @limiter.limit("15 per minute")
 def void_cost(cost_id):
@@ -458,6 +462,7 @@ def void_cost(cost_id):
 
 @construction_admin_bp.route('/restore-cost/<int:id>', methods=['POST'])
 @login_required
+@module_access_required('construction')
 @admin_required
 def restore_cost(id):
     cost = db.get_or_404(CostEntry, id)
@@ -491,6 +496,7 @@ def restore_cost(id):
     return redirect(url_for('construction_admin.all_removed_costs'))
 @construction_admin_bp.route('/edit-cost/<int:cost_id>', methods=['GET', 'POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 def edit_cost(cost_id):
     entry = db.session.get(CostEntry, cost_id)
@@ -645,6 +651,7 @@ def edit_cost(cost_id):
 
 @construction_admin_bp.route('/audit-log')
 @login_required
+@module_access_required('construction')
 @admin_required
 def audit_log():
    
@@ -675,6 +682,7 @@ def audit_log():
 # --- Routes to render the HTML pages ---
 @construction_admin_bp.route('/all-removed-projects')
 @login_required
+@module_access_required('construction')
 @admin_required
 def all_removed_projects():
     page, per_page = get_pagination_args(request)
@@ -688,6 +696,7 @@ def all_removed_projects():
 
 @construction_admin_bp.route('/all-removed-costs')
 @login_required
+@module_access_required('construction')
 @admin_required
 def all_removed_costs():
     page, per_page = get_pagination_args(request)
@@ -701,6 +710,7 @@ def all_removed_costs():
 
 @construction_admin_bp.route('/all-edited-costs')
 @login_required
+@module_access_required('construction')
 @admin_required
 def all_edited_costs():
     # Fetch all logs, order by newest first
@@ -714,6 +724,7 @@ def all_edited_costs():
 
 @construction_admin_bp.route('/all-edited-projects')
 @login_required
+@module_access_required('construction')
 @admin_required
 def all_edited_projects():
     # Fetch all logs, order by newest first
@@ -740,6 +751,7 @@ def _render_dropdown_options(form_data=None):
 
 @construction_admin_bp.route('/dropdown-options', methods=['GET', 'POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 def dropdown_options():
     if request.method == 'POST':
@@ -784,6 +796,7 @@ def dropdown_options():
 
 @construction_admin_bp.route('/dropdown-options/<int:option_id>/delete', methods=['POST'])
 @login_required
+@module_access_required('construction')
 @write_access_required
 def delete_dropdown_option(option_id):
     option = db.get_or_404(DropdownOption, option_id)

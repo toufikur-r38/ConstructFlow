@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("admin.add_authorized_user") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 
@@ -42,7 +43,7 @@
                         <div class="bg-primary bg-opacity-10 p-3 rounded-circle d-inline-block mb-3">
                             <i class="fas fa-user-plus text-primary fs-3"></i>
                         </div>
-                        <h4 class="fw-bold mb-0" style="color: var(--navy);">Add Authorized User</h4>
+                        <h4 class="fw-bold mb-0" style="color: var(--navy);">{{ t("admin.add_authorized_user") }}</h4>
                     </div>
                 </div>
 
@@ -50,23 +51,23 @@
                     <form action="{{ url_for('admin.register') }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Username <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.username") }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-user"></i></span>
-                                <input type="text" name="username" class="form-control form-control-node with-icon" maxlength="50" value="{{ form.get('username', '') }}" placeholder="e.g. jdoe" required>
+                                <input type="text" name="username" class="form-control form-control-node with-icon" maxlength="50" value="{{ form.get('username', '') }}" placeholder="{{ t("admin.example_username") }}" required>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Full Name <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.full_name") }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-id-card"></i></span>
-                                <input type="text" name="full_name" class="form-control form-control-node with-icon" maxlength="100" value="{{ form.get('full_name', '') }}" placeholder="e.g. John Doe" required>
+                                <input type="text" name="full_name" class="form-control form-control-node with-icon" maxlength="100" value="{{ form.get('full_name', '') }}" placeholder="{{ t("admin.example_full_name") }}" required>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Password <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.password") }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-lock"></i></span>
                                 <input type="password" name="password" class="form-control form-control-node with-icon js-password-toggle" placeholder="••••••••" required>
@@ -74,22 +75,50 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Access Level / Role <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.role") }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-shield-alt"></i></span>
                                 <select name="role" class="form-select form-control-node with-icon" required>
-                                    <option value="" {% if not form.get('role') %}selected{% endif %} disabled>Select a role...</option>
-                                    <option value="admin" {% if form.get('role') == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
-                                    <option value="operator" {% if form.get('role') == 'operator' %}selected{% endif %}>Operator (Add Data)</option>
-                                    <option value="viewer" {% if form.get('role') == 'viewer' %}selected{% endif %}>Viewer (Read-Only)</option>
+                                    <option value="" {% if not form.get('role') %}selected{% endif %} disabled>{{ t("admin.select_role") }}</option>
+                                    <option value="admin" {% if form.get('role') == 'admin' %}selected{% endif %}>{{ t("admin.admin_full_access") }}</option>
+                                    <option value="operator" {% if form.get('role') == 'operator' %}selected{% endif %}>{{ t("admin.operator_add_data") }}</option>
+                                    <option value="viewer" {% if form.get('role') == 'viewer' %}selected{% endif %}>{{ t("admin.viewer_read_only") }}</option>
                                 </select>
                             </div>
-                            <div class="form-text text-muted small mt-2">Roles define what the user can see and edit.</div>
+                            <div class="form-text text-muted small mt-2">{{ t("admin.roles_help") }}</div>
                         </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.module_access") }} <span class="text-danger">*</span></label>
+                            <div class="border rounded-3 p-3 bg-light">
+                                {% for module_name, module_label in available_modules.items() %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="modules" value="{{ module_name }}" id="module-{{ module_name }}"
+                                           {% if module_name in selected_module_names %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="module-{{ module_name }}">
+                                        {{ t(module_label) }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        {% if current_user.can_manage_system() %}
+                        <div class="mb-4">
+                            <div class="form-check form-switch border rounded-3 p-3 ps-5 bg-warning bg-opacity-10">
+                                <input class="form-check-input" type="checkbox" role="switch" name="is_super_admin" value="1" id="isSuperAdmin"
+                                       {% if form.get('is_super_admin') == '1' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold" for="isSuperAdmin">
+                                    {{ t("admin.super_admin") }}
+                                </label>
+                                <div class="form-text text-muted small">{{ t("admin.super_admin_help") }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="d-grid mt-4">
                             <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3 shadow-sm border-0" style="background: linear-gradient(45deg, #1a2a6c, #2a48ad);">
-                                <i class="fas fa-save me-2"></i> Create User Account
+                                <i class="fas fa-save me-2"></i> {{ t("admin.create_user_account") }}
                             </button>
                         </div>
 
@@ -101,49 +130,64 @@
         <div class="col-lg-8 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-secondary text-white p-3 d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold"><i class="fas fa-users-cog me-2"></i>User Accounts Ledger</h6>
-                    <span class="badge bg-light text-dark">Total Users: {{ pagination.total if pagination else users|length if users else 0 }}</span>
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-users-cog me-2"></i>{{ t("admin.user_accounts_ledger") }}</h6>
+                    <span class="badge bg-light text-dark">{{ t("admin.total_users") }} {{ pagination.total if pagination else users|length if users else 0 }}</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 text-center">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Username</th>
-                                    <th>Full Name</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Manage User</th>
+                                    <th>{{ t("admin.username") }}</th>
+                                    <th>{{ t("admin.full_name") }}</th>
+                                    <th>{{ t("admin.role") }}</th>
+                                    <th>{{ t("admin.modules") }}</th>
+                                    <th>{{ t("admin.status") }}</th>
+                                    <th>{{ t("admin.manage_user") }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for u in users %}
                                 <tr>
                                     <td class="fw-bold text-primary">{{ u.username }}</td>
-                                    <td class="text-dark fw-semibold">{{ u.full_name or 'N/A' }}</td>
+                                    <td class="text-dark fw-semibold">{{ u.full_name or t("common.not_available") }}</td>
                                     <td>
                                         {% if u.role == 'admin' %}
-                                            <span class="badge bg-danger">Admin</span>
+                                            <span class="badge bg-danger">{{ u.role }}</span>
                                         {% elif u.role == 'operator' %}
-                                            <span class="badge bg-info text-dark">Operator</span>
+                                            <span class="badge bg-info text-dark">{{ u.role }}</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">Viewer</span>
+                                            <span class="badge bg-secondary">{{ u.role }}</span>
+                                        {% endif %}
+                                        {% if u.is_super_admin %}
+                                            <span class="badge bg-warning text-dark ms-1">{{ t("admin.super_admin") }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if u.is_super_admin %}
+                                            <span class="badge bg-dark">{{ t("admin.all_modules") }}</span>
+                                        {% elif u.module_access %}
+                                            {% for module in u.module_access %}
+                                                <span class="badge bg-light text-dark border">{{ t(available_modules.get(module.module_name, module.module_name)) }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted small">{{ t("admin.no_modules") }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if u.is_active %}
                                             <span class="badge bg-success shadow-sm px-3 py-2">
-                                                <i class="fas fa-user-check me-1"></i> Active
+                                                <i class="fas fa-user-check me-1"></i> {{ t("admin.active") }}
                                             </span>
                                         {% else %}
                                             <span class="badge bg-secondary shadow-sm px-3 py-2">
-                                                <i class="fas fa-user-slash me-1"></i> Inactive
+                                                <i class="fas fa-user-slash me-1"></i> {{ t("admin.inactive") }}
                                             </span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <a href="{{ url_for('admin.edit_user', user_id=u.id) }}" class="btn btn-sm btn-outline-primary border-0 fw-bold shadow-sm">
-                                            <i class="fas fa-edit me-1"></i> Edit
+                                            <i class="fas fa-edit me-1"></i> {{ t("admin.edit") }}
                                         </a>
                                         
                                         {% if u.id != current_user.id %}
@@ -154,9 +198,10 @@
                                             <button type="button" 
                                                class="btn btn-sm border-0 fw-bold shadow-sm toggle-status-btn {{ 'btn-outline-danger' if u.is_active else 'btn-outline-success' }}" 
                                                data-username="{{ u.username }}"
-                                               data-action="{{ 'Deactivate' if u.is_active else 'Activate' }}">
+                                               data-action="{{ t('admin.deactivate') if u.is_active else t('admin.activate') }}"
+                                               data-action-key="{{ 'deactivate' if u.is_active else 'activate' }}">
                                                 <i class="fas fa-{{ 'user-slash' if u.is_active else 'user-check' }} me-1"></i>
-                                                {{ 'Deactivate' if u.is_active else 'Activate' }}
+                                                {{ t('admin.deactivate') if u.is_active else t('admin.activate') }}
                                             </button>
                                         </form>
                                         {% endif %}
@@ -164,9 +209,9 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-5">
+                                    <td colspan="6" class="text-center text-muted py-5">
                                         <i class="fas fa-users fs-2 mb-2 opacity-50"></i><br>
-                                        No users registered yet.
+                                        {{ t("admin.no_users") }}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -174,7 +219,7 @@
                         </table>
                     </div>
                     <div class="px-3 pb-2">
-                        {% set pagination_label = 'users' %}
+                        {% set pagination_label = t('admin.users') %}
                         {% include "_pagination.html" %}
                     </div>
                 </div>
@@ -193,18 +238,19 @@
             
             const form = this.closest('form'); 
             const actionText = this.getAttribute('data-action');
+            const actionKey = this.getAttribute('data-action-key');
             const username = this.getAttribute('data-username');
             
             // Set dynamic colors based on action
-            const confirmColor = actionText === 'Deactivate' ? '#d33' : '#198754';
-            const iconType = actionText === 'Deactivate' ? 'warning' : 'question';
+            const confirmColor = actionKey === 'deactivate' ? '#d33' : '#198754';
+            const iconType = actionKey === 'deactivate' ? 'warning' : 'question';
 
             Swal.fire({
-                title: `${actionText} User?`,
-                text: `Are you sure you want to ${actionText.toLowerCase()} the account for ${username}?`,
+                title: `{{ t("admin.toggle_user_title")|replace("{action}", "${actionText}") }}`,
+                text: `{{ t("admin.toggle_user_text")|replace("{action}", "${actionText}")|replace("{username}", "${username}") }}`,
                 icon: iconType,
                 input: 'password',
-                inputPlaceholder: 'Enter your admin password',
+                inputPlaceholder: '{{ t("admin.admin_password_placeholder") }}',
                 inputAttributes: {
                     autocapitalize: 'off',
                     autocomplete: 'current-password'
@@ -212,12 +258,12 @@
                 showCancelButton: true,
                 confirmButtonColor: confirmColor,
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: `Yes, ${actionText.toLowerCase()} it!`,
-                cancelButtonText: 'Cancel',
+                confirmButtonText: `{{ t("admin.yes_action_it")|replace("{action}", "${actionText}") }}`,
+                cancelButtonText: '{{ t("common.cancel") }}',
                 backdrop: `rgba(26, 42, 108, 0.4)`,
                 preConfirm: (password) => {
                     if (!password) {
-                        Swal.showValidationMessage('Password is required.');
+                        Swal.showValidationMessage('{{ t("admin.password_required") }}');
                     }
                     return password;
                 }

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("dropdown.title") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 
@@ -9,11 +10,11 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
     <div>
-        <h3 class="fw-bold mb-1" style="color: var(--navy);">Dropdown Items</h3>
-        <p class="text-muted small mb-0">Manage project sectors and cost categories used in entry forms.</p>
+        <h3 class="fw-bold mb-1" style="color: var(--navy);">{{ t("dropdown.title") }}</h3>
+        <p class="text-muted small mb-0">{{ t("dropdown.subtitle") }}</p>
     </div>
     <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary shadow-sm">
-        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        <i class="fas fa-arrow-left me-2"></i>{{ t("dropdown.back_to_dashboard") }}
     </a>
 </div>
 
@@ -22,19 +23,19 @@
         <form method="POST" class="row g-3 align-items-end" id="addOptionForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="col-md-4">
-                <label class="form-label fw-bold">Dropdown</label>
+                <label class="form-label fw-bold">{{ t("dropdown.dropdown") }}</label>
                 <select name="option_type" class="form-select" id="optionType" required>
-                    <option value="project_sector" {% if form.get('option_type', 'project_sector') == 'project_sector' %}selected{% endif %}>Project Sector</option>
-                    <option value="cost_type" {% if form.get('option_type') == 'cost_type' %}selected{% endif %}>Cost Type</option>
+                    <option value="project_sector" {% if form.get('option_type', 'project_sector') == 'project_sector' %}selected{% endif %}>{{ t("dropdown.project_sector") }}</option>
+                    <option value="cost_type" {% if form.get('option_type') == 'cost_type' %}selected{% endif %}>{{ t("dropdown.cost_type") }}</option>
                 </select>
             </div>
             <div class="col-md-6">
-                <label class="form-label fw-bold">New Item</label>
-                <input type="text" name="name" class="form-control" id="optionName" maxlength="100" value="{{ form.get('name', '') }}" placeholder="Type item name..." required>
+                <label class="form-label fw-bold">{{ t("dropdown.new_item") }}</label>
+                <input type="text" name="name" class="form-control" id="optionName" maxlength="100" autocomplete="off" value="{{ form.get('name', '') }}" placeholder="{{ t("dropdown.type_item_name") }}" required>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-success w-100 fw-bold">
-                    <i class="fas fa-plus me-1"></i>Add
+                    <i class="fas fa-plus me-1"></i>{{ t("dropdown.add") }}
                 </button>
             </div>
         </form>
@@ -45,7 +46,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 option-card h-100">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-layer-group me-2"></i>Project Sectors</h5>
+                <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-layer-group me-2"></i>{{ t("dropdown.project_sectors") }}</h5>
                 <span class="badge bg-primary">{{ sectors|length }}</span>
             </div>
             <div class="card-body option-list">
@@ -56,7 +57,7 @@
                           action="{{ url_for('construction_admin.delete_dropdown_option', option_id=option.id) }}"
                           class="delete-option-form"
                           data-item-name="{{ option.name }}"
-                          data-item-type="Project Sector">
+                          data-item-type="{{ t("dropdown.project_sector") }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="btn btn-sm btn-outline-danger">
                             <i class="fas fa-trash"></i>
@@ -64,7 +65,7 @@
                     </form>
                 </div>
                 {% else %}
-                <p class="text-muted text-center py-4 mb-0">No sectors found.</p>
+                <p class="text-muted text-center py-4 mb-0">{{ t("dropdown.no_sectors") }}</p>
                 {% endfor %}
             </div>
         </div>
@@ -73,7 +74,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm border-0 option-card h-100">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-danger"><i class="fas fa-tags me-2"></i>Cost Types</h5>
+                <h5 class="fw-bold mb-0 text-danger"><i class="fas fa-tags me-2"></i>{{ t("dropdown.cost_types") }}</h5>
                 <span class="badge bg-danger">{{ cost_types|length }}</span>
             </div>
             <div class="card-body option-list">
@@ -84,7 +85,7 @@
                           action="{{ url_for('construction_admin.delete_dropdown_option', option_id=option.id) }}"
                           class="delete-option-form"
                           data-item-name="{{ option.name }}"
-                          data-item-type="Cost Type">
+                          data-item-type="{{ t("dropdown.cost_type") }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="btn btn-sm btn-outline-danger">
                             <i class="fas fa-trash"></i>
@@ -92,7 +93,7 @@
                     </form>
                 </div>
                 {% else %}
-                <p class="text-muted text-center py-4 mb-0">No cost types found.</p>
+                <p class="text-muted text-center py-4 mb-0">{{ t("dropdown.no_cost_types") }}</p>
                 {% endfor %}
             </div>
         </div>
@@ -118,19 +119,19 @@
             const itemName = optionName.value.trim();
 
             Swal.fire({
-                title: 'Add Dropdown Item?',
+                title: '{{ t("dropdown.add_item_title") }}',
                 html: `
                     <div class="text-start small">
-                        <div><strong>Dropdown:</strong> ${selectedLabel}</div>
-                        <div><strong>New Item:</strong> ${itemName}</div>
+                        <div><strong>{{ t("dropdown.dropdown") }}:</strong> ${selectedLabel}</div>
+                        <div><strong>{{ t("dropdown.new_item_label") }}</strong> ${itemName}</div>
                     </div>
                 `,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#198754',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-plus"></i> Yes, add item',
-                cancelButtonText: 'Cancel',
+                confirmButtonText: '<i class="fas fa-plus"></i> {{ t("dropdown.yes_add_item") }}',
+                cancelButtonText: '{{ t("common.cancel") }}',
                 backdrop: 'rgba(26, 42, 108, 0.4)'
             }).then(function(result) {
                 if (result.isConfirmed) {
@@ -149,17 +150,17 @@
 
             event.preventDefault();
 
-            const itemType = form.dataset.itemType || 'Dropdown Item';
-            const itemName = form.dataset.itemName || 'this item';
+            const itemType = form.dataset.itemType || '{{ t("dropdown.dropdown_item") }}';
+            const itemName = form.dataset.itemName || '{{ t("dropdown.this_item") }}';
 
             Swal.fire({
-                title: 'Remove Item?',
+                title: '{{ t("dropdown.remove_item_title") }}',
                 html: `
                     <div class="text-start small">
-                        <div><strong>Dropdown:</strong> ${itemType}</div>
-                        <div><strong>Item:</strong> ${itemName}</div>
+                        <div><strong>{{ t("dropdown.dropdown") }}:</strong> ${itemType}</div>
+                        <div><strong>{{ t("dropdown.item_label") }}</strong> ${itemName}</div>
                         <p class="text-muted mt-3 mb-0">
-                            Existing saved records will remain unchanged. This only removes the option from future dropdowns.
+                            {{ t("dropdown.remove_help") }}
                         </p>
                     </div>
                 `,
@@ -167,8 +168,8 @@
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-trash"></i> Yes, remove',
-                cancelButtonText: 'Cancel',
+                confirmButtonText: '<i class="fas fa-trash"></i> {{ t("dropdown.yes_remove") }}',
+                cancelButtonText: '{{ t("common.cancel") }}',
                 backdrop: 'rgba(26, 42, 108, 0.4)'
             }).then(function(result) {
                 if (result.isConfirmed) {

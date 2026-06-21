@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ConstructFlow</title>
+    <title>{% block title %}{{ t("common.app_name") }}{% endblock %}</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -88,6 +88,52 @@
             transition: transform 0.3s ease;
         }
 
+        .project-name-glass {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            min-height: 34px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(42, 72, 173, 0.18);
+            background: linear-gradient(
+                135deg,
+                color-mix(in srgb, var(--surface) 88%, transparent),
+                color-mix(in srgb, #e8f0ff 72%, transparent)
+            );
+            color: var(--navy) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                0 8px 18px rgba(26, 42, 108, 0.10);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .project-name-glass:hover,
+        tr:hover .project-name-glass {
+            transform: translateY(-1px);
+            border-color: rgba(42, 72, 173, 0.34);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.78),
+                0 10px 24px rgba(26, 42, 108, 0.18);
+        }
+
+        html[data-bs-theme="dark"] .project-name-glass {
+            border-color: rgba(110, 168, 254, 0.28);
+            background: linear-gradient(
+                135deg,
+                rgba(26, 42, 108, 0.62),
+                rgba(16, 24, 39, 0.84)
+            );
+            color: #dbeafe !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.10),
+                0 8px 20px rgba(0, 0, 0, 0.24);
+        }
+
         .node-input {
             background-color: var(--node-bg) !important;
             border: 1px solid var(--border-soft) !important;
@@ -115,6 +161,10 @@
             gap: 6px;
         }
 
+        .nav-rail {
+            min-width: 0;
+        }
+
         /* Nav links */
         .nav-link {
             padding: 8px 14px !important;
@@ -122,6 +172,7 @@
             font-size: 15px;
             font-weight: 500;
             transition: 0.2s ease;
+            white-space: nowrap;
         }
 
         /* Hover */
@@ -162,6 +213,28 @@
             box-shadow: none;
         }
 
+        .module-switch-toggle {
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            color: #fff !important;
+            min-height: 40px;
+            padding: 6px 12px !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .module-switch-toggle:hover,
+        .module-switch-toggle:focus {
+            background: rgba(255,255,255,0.14);
+            color: #fff !important;
+            box-shadow: none;
+        }
+
         .user-avatar {
             width: 32px;
             height: 32px;
@@ -191,6 +264,30 @@
         }
 
         .user-menu .dropdown-item i {
+            width: 18px;
+        }
+
+        .module-menu {
+            min-width: 230px;
+            border-radius: 10px;
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .module-menu .dropdown-header {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .module-menu .dropdown-item {
+            padding: 9px 14px;
+            font-weight: 500;
+        }
+
+        .module-menu .dropdown-item i {
             width: 18px;
         }
 
@@ -235,6 +332,30 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .language-switch {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .language-switch a {
+            color: rgba(255,255,255,0.72);
+            text-decoration: none;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .language-switch a:hover,
+        .language-switch a.active {
+            color: #fff;
+            background: rgba(255,255,255,0.16);
         }
 
         .theme-toggle:hover {
@@ -438,6 +559,54 @@
             .navbar-nav {
                 margin-left: 10px;
             }
+
+            #navbarNav {
+                min-width: 0;
+            }
+
+            .nav-rail {
+                flex: 1 1 auto;
+                overflow: visible;
+            }
+
+            .nav-custom {
+                flex-wrap: nowrap !important;
+                width: max-content;
+                gap: 4px;
+            }
+
+            .nav-custom .nav-link {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 992px) and (max-width: 1399.98px) {
+            .brand-subtitle {
+                display: none;
+            }
+
+            .navbar .container {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .nav-custom {
+                gap: 2px;
+            }
+
+            .nav-custom .nav-link {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+                font-size: 13px;
+            }
+
+            .module-switch-toggle {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+                font-size: 13px;
+            }
         }
         .btn-primary { 
             background: linear-gradient(45deg, var(--navy), #2a48ad); 
@@ -466,11 +635,11 @@
 <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-2">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center brand-panel"
-           href="{{ url_for('dashboard.index') }}">
+           href="{{ module_home_url or url_for('module_hub') }}">
 
             <img src="{{ url_for('static', filename='img/ConstructFlow-logo-nav.png') }}"
                  alt="ConstructFlow Logo"
-                 width="181"
+                 width="50"
                  height="48"
                  class="navbar-logo me-2">
 
@@ -480,7 +649,7 @@
                 </div>
             
                 <div class="small brand-subtitle">
-                    Construction Project Cost Management
+                    {{ t("common.app_subtitle") }}
                 </div>
             </div>
         </a>
@@ -494,70 +663,192 @@
             {% if current_user.is_authenticated %}
 
         
-            <div class="d-flex align-items-center flex-wrap gap-3">
+            <div class="nav-rail d-flex align-items-center gap-3">
             
             
-                <ul class="navbar-nav flex-row flex-wrap align-items-center nav-custom">
-            
+                <ul class="navbar-nav flex-row flex-nowrap align-items-center nav-custom">
+                    {% set can_write_construction = current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
+                    {% set can_admin_construction = current_user.role == 'admin' or current_user.is_super_admin %}
+                    {% set construction_active = request.endpoint in [
+                        'dashboard.admin_dashboard',
+                        'dashboard.operator_dashboard',
+                        'dashboard.viewer_dashboard',
+                        'projects.view_projects',
+                        'projects.add_project',
+                        'costs.add_cost',
+                        'costs.add_late_cost',
+                        'costs.view_costs',
+                        'costs.download_pdf',
+                        'construction_admin.dropdown_options',
+                        'construction_admin.audit_log',
+                        'construction_admin.all_removed_projects',
+                        'construction_admin.all_removed_costs',
+                        'construction_admin.all_edited_costs',
+                        'construction_admin.all_edited_projects'
+                    ] %}
+                    {% set system_management_active = request.endpoint in [
+                        'admin.register',
+                        'admin.edit_user'
+                    ] %}
+                    {% set show_construction_nav = current_user.has_module('construction') and (construction_active or system_management_active) %}
+
+                    {% if show_construction_nav %}
+                    {% if current_user.is_super_admin or visible_modules|length > 1 %}
+                    <li class="nav-item dropdown">
+                        <a class="module-switch-toggle dropdown-toggle {% if construction_active %}active-link{% endif %}"
+                           href="#"
+                           id="moduleSwitcherMenu"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="fas fa-building"></i>{{ t("modules.construction") }}
+                        </a>
+                        <ul class="dropdown-menu module-menu" aria-labelledby="moduleSwitcherMenu">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('module_hub') }}">
+                                    <i class="fas fa-table-cells-large text-primary me-2"></i>{{ t("modules.title") }}
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% for module_name, module_label in visible_modules.items() %}
+                                {% if module_name == 'construction' %}
+                                <li>
+                                    <a class="dropdown-item active" href="{{ url_for('dashboard.index') }}">
+                                        <i class="fas fa-building text-primary me-2"></i>{{ t(module_label) }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint in ['dashboard.admin_dashboard', 'dashboard.operator_dashboard', 'dashboard.viewer_dashboard'] %}active-link{% endif %}"
-                        href="{{ url_for('dashboard.index') }}">
-                        Dashboard
+                           href="{{ url_for('dashboard.index') }}">
+                            {{ t("Dashboard") }}
                         </a>
                     </li>
-            
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'projects.view_projects' %}active-link{% endif %}"
-                        href="{{ url_for('projects.view_projects') }}">
-                        Project Ledger
+                           href="{{ url_for('projects.view_projects') }}">
+                            {{ t("Project Ledger") }}
                         </a>
                     </li>
-            
-                    {% if current_user.role in ['admin', 'operator'] %}
+                    {% if can_write_construction %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'projects.add_project' %}active-link{% endif %}"
-                        href="{{ url_for('projects.add_project') }}">
-                        Add Project
+                           href="{{ url_for('projects.add_project') }}">
+                            {{ t("Add Project") }}
                         </a>
                     </li>
-            
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'costs.add_cost' %}active-link{% endif %}"
-                        href="{{ url_for('costs.add_cost') }}">
-                        Cost Entry
+                        <a class="nav-link {% if request.endpoint in ['costs.add_cost', 'costs.add_late_cost'] %}active-link{% endif %}"
+                           href="{{ url_for('costs.add_cost') }}">
+                            {{ t("Cost Entry") }}
                         </a>
                     </li>
                     {% endif %}
-            
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'costs.view_costs' %}active-link{% endif %}"
-                        href="{{ url_for('costs.view_costs') }}">
-                        Reports
+                        <a class="nav-link {% if request.endpoint in ['costs.view_costs', 'costs.download_pdf'] %}active-link{% endif %}"
+                           href="{{ url_for('costs.view_costs') }}">
+                            {{ t("Reports") }}
                         </a>
                     </li>
-
-                    {% if current_user.role in ['admin', 'operator'] %}
+                    {% if can_write_construction %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'construction_admin.dropdown_options' %}active-link{% endif %}"
-                        href="{{ url_for('construction_admin.dropdown_options') }}">
-                        <i class="fas fa-list-check me-1"></i> Dropdown Items
+                           href="{{ url_for('construction_admin.dropdown_options') }}">
+                            {{ t("Dropdown Items") }}
                         </a>
                     </li>
                     {% endif %}
-            
-                    {% if current_user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'admin.register' %}active-link{% endif %}"
-                        href="{{ url_for('admin.register') }}">
-                        <i class="fas fa-user-plus me-1"></i> Add User
+                    {% else %}
+                    {% for module_name, module_label in visible_modules.items() %}
+                        {% if module_name == 'construction' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if construction_active %}active-link{% endif %}"
+                               href="#"
+                               id="constructionModuleMenu"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                <i class="fas fa-building me-1"></i> {{ t(module_label) }}
+                            </a>
+                            <ul class="dropdown-menu module-menu" aria-labelledby="constructionModuleMenu">
+                                <li><h6 class="dropdown-header">{{ t(module_label) }}</h6></li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint in ['dashboard.admin_dashboard', 'dashboard.operator_dashboard', 'dashboard.viewer_dashboard'] %}active{% endif %}"
+                                       href="{{ url_for('dashboard.index') }}">
+                                        <i class="fas fa-chart-line text-primary me-2"></i>{{ t("Dashboard") }}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'projects.view_projects' %}active{% endif %}"
+                                       href="{{ url_for('projects.view_projects') }}">
+                                        <i class="fas fa-list text-primary me-2"></i>{{ t("Project Ledger") }}
+                                    </a>
+                                </li>
+                                {% if can_write_construction %}
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'projects.add_project' %}active{% endif %}"
+                                       href="{{ url_for('projects.add_project') }}">
+                                        <i class="fas fa-plus-circle text-success me-2"></i>{{ t("Add Project") }}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint in ['costs.add_cost', 'costs.add_late_cost'] %}active{% endif %}"
+                                       href="{{ url_for('costs.add_cost') }}">
+                                        <i class="fas fa-coins text-success me-2"></i>{{ t("Cost Entry") }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint in ['costs.view_costs', 'costs.download_pdf'] %}active{% endif %}"
+                                       href="{{ url_for('costs.view_costs') }}">
+                                        <i class="fas fa-file-invoice-dollar text-primary me-2"></i>{{ t("Reports") }}
+                                    </a>
+                                </li>
+                                {% if can_write_construction %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item {% if request.endpoint == 'construction_admin.dropdown_options' %}active{% endif %}"
+                                       href="{{ url_for('construction_admin.dropdown_options') }}">
+                                        <i class="fas fa-list-check text-warning me-2"></i>{{ t("Dropdown Items") }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% endif %}
+
+                    {% if current_user.role == 'admin' or current_user.is_super_admin %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.endpoint in ['admin.register', 'construction_admin.audit_log', 'construction_admin.all_removed_projects', 'construction_admin.all_removed_costs', 'construction_admin.all_edited_costs', 'construction_admin.all_edited_projects'] %}active-link{% endif %}"
+                           href="#"
+                           id="systemManageMenu"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            {{ t("common.manage") }}
                         </a>
-                    </li>
-            
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'construction_admin.audit_log' %}active-link{% endif %}"
-                        href="{{ url_for('construction_admin.audit_log') }}">
-                        <i class="fas fa-shield-alt me-1"></i> Audit Log
-                        </a>
+                        <ul class="dropdown-menu module-menu" aria-labelledby="systemManageMenu">
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint == 'admin.register' %}active{% endif %}"
+                                   href="{{ url_for('admin.register') }}">
+                                    <i class="fas fa-user-plus text-success me-2"></i>{{ t("Add User") }}
+                                </a>
+                            </li>
+                            {% if can_admin_construction and current_user.has_module('construction') %}
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint in ['construction_admin.audit_log', 'construction_admin.all_removed_projects', 'construction_admin.all_removed_costs', 'construction_admin.all_edited_costs', 'construction_admin.all_edited_projects'] %}active{% endif %}"
+                                   href="{{ url_for('construction_admin.audit_log') }}">
+                                    <i class="fas fa-shield-alt text-danger me-2"></i>{{ t("Audit Log") }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
                     </li>
                     {% endif %}
             
@@ -566,7 +857,13 @@
             
             <ul class="navbar-nav align-items-lg-center gap-2">
                 <li class="nav-item me-2">
-                    <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch to dark mode" title="Toggle dark mode">
+                    <div class="language-switch" aria-label="{{ t('Language') }}">
+                        <a href="{{ url_for('set_language', lang='en') }}" class="{% if current_lang == 'en' %}active{% endif %}">EN</a>
+                        <a href="{{ url_for('set_language', lang='bn') }}" class="{% if current_lang == 'bn' %}active{% endif %}">বাংলা</a>
+                    </div>
+                </li>
+                <li class="nav-item me-2">
+                    <button type="button" id="themeToggle" class="theme-toggle" aria-label="{{ t('Switch to dark mode') }}" title="{{ t('Toggle dark mode') }}">
                         <i class="fas fa-moon"></i>
                     </button>
                 </li>
@@ -580,7 +877,7 @@
                         </span>
                         <span class="text-start d-none d-sm-inline">
                             <span class="d-block fw-semibold lh-1">{{ current_user.username | capitalize }}</span>
-                            <span class="small opacity-75">{{ current_user.role | upper }}</span>
+                            <span class="small opacity-75">{{ t("admin.super_admin") if current_user.is_super_admin else current_user.role }}</span>
                         </span>
                     </button>
                     <div class="dropdown-menu dropdown-menu-end user-menu p-0">
@@ -591,25 +888,25 @@
                                 </span>
                                 <div>
                                     <div class="fw-bold">{{ current_user.full_name }}</div>
-                                    <div class="small text-muted">@{{ current_user.username }} · {{ current_user.role | upper }}</div>
+                                    <div class="small text-muted">@{{ current_user.username }} · {{ t("admin.super_admin") if current_user.is_super_admin else current_user.role }}</div>
                                 </div>
                             </div>
                         </div>
                         <div class="p-2">
                             <a class="dropdown-item rounded" href="{{ url_for('account.profile') }}">
-                                <i class="fas fa-id-card text-primary me-2"></i> My Profile
+                                <i class="fas fa-id-card text-primary me-2"></i> {{ t("My Profile") }}
                             </a>
                             <a class="dropdown-item rounded" href="{{ url_for('account.change_password') }}">
-                                <i class="fas fa-key text-warning me-2"></i> Change Password
+                                <i class="fas fa-key text-warning me-2"></i> {{ t("Change Password") }}
                             </a>
                             <button type="button" class="dropdown-item rounded" id="themeMenuToggle">
-                                <i class="fas fa-circle-half-stroke text-info me-2"></i> Toggle Theme
+                                <i class="fas fa-circle-half-stroke text-info me-2"></i> {{ t("Toggle Theme") }}
                             </button>
                             <div class="dropdown-divider"></div>
                             <form method="POST" action="{{ url_for('auth.logout') }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="dropdown-item rounded logout-btn">
-                                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                    <i class="fas fa-sign-out-alt me-2"></i> {{ t("Logout") }}
                                 </button>
                             </form>
                         </div>
@@ -618,9 +915,9 @@
                 <li class="nav-item">
                     <form method="POST" action="{{ url_for('auth.logout') }}" class="navbar-logout-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="navbar-logout-btn" aria-label="Logout">
+                        <button type="submit" class="navbar-logout-btn" aria-label="{{ t('Logout') }}">
                             <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
+                            <span>{{ t("Logout") }}</span>
                         </button>
                     </form>
                 </li>
@@ -642,7 +939,7 @@
                 {% elif category == 'warning' %}<i class="fas fa-exclamation-triangle me-2 text-warning"></i>
                 {% else %}<i class="fas fa-info-circle me-2 text-info"></i>
                 {% endif %}
-                <strong>{{ message }}</strong>
+                <strong>{{ t(message) }}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         {% endfor %}
@@ -670,7 +967,7 @@
             }
 
             if (themeToggle) {
-                themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+                themeToggle.setAttribute('aria-label', isDark ? '{{ t("Switch to light mode") }}' : '{{ t("Switch to dark mode") }}');
             }
         }
 
@@ -714,7 +1011,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'input-group-text bg-white border-start-0';
-            button.setAttribute('aria-label', 'Show password');
+            button.setAttribute('aria-label', '{{ t("Show password") }}');
             button.innerHTML = '<i class="fas fa-eye text-secondary"></i>';
             wrapper.appendChild(button);
 
@@ -725,7 +1022,7 @@
                 input.type = shouldShow ? 'text' : 'password';
                 icon.classList.toggle('fa-eye', !shouldShow);
                 icon.classList.toggle('fa-eye-slash', shouldShow);
-                button.setAttribute('aria-label', shouldShow ? 'Hide password' : 'Show password');
+                button.setAttribute('aria-label', shouldShow ? '{{ t("Hide password") }}' : '{{ t("Show password") }}');
             });
 
             input.dataset.toggleReady = 'true';

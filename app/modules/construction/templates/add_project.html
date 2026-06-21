@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("project.register_new_project") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 
@@ -44,79 +45,78 @@
         <div class="col-lg-10 mb-5">
             <div class="card shadow-sm project-entry-card">
                 <div class="card-header bg-dark text-white p-3">
-                    <h5 class="mb-0"><i class="fas fa-file-lines text-warning me-2"></i> Register New Project </h5>
+                    <h5 class="mb-0"><i class="fas fa-file-lines text-warning me-2"></i> {{ t("project.register_new_project") }} </h5>
                 </div>
                 <div class="card-body p-4 bg-light">
                     <form id="projectForm" action="{{ url_for('projects.add_project') }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="row">
                 <div class="col-md-2 mb-3">
-                    <label class="form-label fw-bold text-muted">Project ID</label>
+                    <label class="form-label fw-bold text-muted">{{ t("project.project_id") }}</label>
                     <input type="text" class="form-control bg-white text-center fw-bold" 
-                           placeholder="AUTO" disabled>
-                    <small class="text-muted" style="font-size: 0.75rem;">System Assigned</small>
+                           placeholder="{{ t('project.auto') }}" disabled>
+                    <small class="text-muted" style="font-size: 0.75rem;">{{ t("project.system_assigned") }}</small>
                 </div>
 
                 <div class="col-md-5 mb-3">
-                    <label class="form-label fw-bold">Project Name <span class="text-danger">*</span></label>
-                    <input type="text" name="project_name" class="form-control" maxlength="200" required
+                    <label class="form-label fw-bold">{{ t("project.project_name") }} <span class="text-danger">*</span></label>
+                    <input type="text" name="project_name" class="form-control" maxlength="200" autocomplete="off" required
                         value="{{ form.get('project_name', '') }}"
-                        placeholder="e.g. AMC Boundary Wall">
+                        placeholder="{{ t("project.example_project_name") }}">
                 </div>
 
                 <div class="col-md-5 mb-3">
-                    <label class="form-label fw-bold">Sector <span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold">{{ t("project.sector") }} <span class="text-danger">*</span></label>
                     <select name="sector" class="form-select search-select" required>
-                        <option value="">Search Sector...</option>
+                        <option value="">{{ t("project.search_sector") }}</option>
                         {% for sector in sectors %}
                         <option value="{{ sector }}" {% if form.get('sector') == sector %}selected{% endif %}>{{ sector }}</option>
                         {% endfor %}
                     </select>
                 </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Firm Name</label>
+                                <label class="form-label fw-bold">{{ t("project.firm_name") }}</label>
                                 <input type="text" name="firm_name" class="form-control" maxlength="200"
                                     value="{{ form.get('firm_name', '') }}"
-                                    placeholder="Contractor / Firm Name">
+                                    placeholder="{{ t('project.contractor_firm_name') }}">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Tender ID</label>
-                                <input type="text" name="tender_id" class="form-control" maxlength="100" value="{{ form.get('tender_id', '') }}" placeholder="e.g. 112233445">
+                                <label class="form-label fw-bold">{{ t("project.tender_id") }}</label>
+                                <input type="text" name="tender_id" class="form-control" maxlength="100" value="{{ form.get('tender_id', '') }}" placeholder="{{ t("project.example_tender_id") }}">
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">NOA Date</label>
+                                <label class="form-label fw-bold">{{ t("project.noa_date") }}</label>
                                 <input type="date" name="noa_date" class="form-control" value="{{ form.get('noa_date', '') }}">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Work Order Year</label>
+                                <label class="form-label fw-bold">{{ t("project.work_order_year") }}</label>
                                 <input type="text" name="work_order_year" class="form-control"
                                     value="{{ form.get('work_order_year', '') }}"
-                                    placeholder="e.g. 2025-2026">
+                                    placeholder="{{ t("project.example_work_year") }}">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Contract Price (৳)</label>
+                                <label class="form-label fw-bold">{{ t("project.contract_price") }} (৳)</label>
                                 <input type="number" step="0.01" name="contract_price" class="form-control"
                                     value="{{ form.get('contract_price', '') }}"
                                     placeholder="0.00">
                             </div>
 
                             <div class="col-12 mb-4">
-                                <label class="form-label fw-bold">Full Site Address <span
+                                <label class="form-label fw-bold">{{ t("project.full_site_address") }} <span
                                         class="text-danger">*</span></label>
                                 <textarea name="address" class="form-control" rows="2" maxlength="500" required
-                                    placeholder="Enter detailed location...">{{ form.get('address', '') }}</textarea>
+                                    placeholder="{{ t('project.enter_detailed_location') }}">{{ form.get('address', '') }}</textarea>
                             </div>
 
                             <div class="col-12 mb-4">
-                                <label class="form-label fw-bold">Additional Details</label>
+                                <label class="form-label fw-bold">{{ t("project.additional_details") }}</label>
                                 <textarea name="additional_details" class="form-control" rows="2"
-                                    placeholder="Any extra notes, conditions, or remarks...">{{ form.get('additional_details', '') }}</textarea>
+                                    placeholder="{{ t('project.extra_notes_placeholder') }}">{{ form.get('additional_details', '') }}</textarea>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">SAVE
-                            PROJECT</button>
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-sm">{{ t("project.save_project") }}</button>
                     </form>
                 </div>
             </div>
@@ -125,8 +125,8 @@
         <div class="col-lg-12">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-secondary text-white p-3 d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>Registered Projects Ledger</h6>
-                    <span class="badge bg-light text-dark">Total: {{ projects|length }}</span>
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>{{ t("project.registered_projects_ledger") }}</h6>
+                    <span class="badge bg-light text-dark">{{ t("common.total") }}: {{ projects|length }}</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -134,29 +134,35 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th>ID</th>
-                                    <th>Project Name</th>
-                                    <th>Sector</th>
-                                    <th>Status</th>
-                                    <th>Firm Name</th>
-                                    <th>Tender ID</th>
-                                    <th>NOA Date</th>
-                                    <th>Work Order Year</th>
-                                    <th>Contract Price</th>
-                                    <th>Address</th>
-                                    <th>Logged At</th>
-                                    <th>Logged By</th>
+                                    <th>{{ t("project.project_name") }}</th>
+                                    <th>{{ t("project.sector") }}</th>
+                                    <th>{{ t("common.status") }}</th>
+                                    <th>{{ t("project.firm_name") }}</th>
+                                    <th>{{ t("project.tender_id") }}</th>
+                                    <th>{{ t("project.noa_date") }}</th>
+                                    <th>{{ t("project.work_order_year") }}</th>
+                                    <th>{{ t("project.contract_price") }}</th>
+                                    <th>{{ t("project.address") }}</th>
+                                    <th>{{ t("table.logged_at") }}</th>
+                                    <th>{{ t("project.logged_by") }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for p in projects %}
                                 <tr>
                                     <td class="fw-bold">{{ p.id }}</td>
-                                    <td class="fw-bold text-primary">{{ p.project_name }}</td>
+                                    <td class="fw-bold text-primary">
+                                        <a class="project-name-glass text-decoration-none"
+                                           href="{{ url_for('costs.add_cost', project_id=p.id) }}"
+                                           title="{{ t('common.cost_entry') }}: {{ p.project_name }}">
+                                            {{ p.project_name }}
+                                        </a>
+                                    </td>
                                     <td><span class="badge bg-info text-dark">{{ p.sector }}</span></td>
                                     
                                     <td>
                                         {% if p.status == 'Running' %}
-                                            <span class="badge bg-success px-3 py-2">Running</span>
+                                            <span class="badge bg-success px-3 py-2">{{ p.status }}</span>
                                         {% else %}
                                             <span class="badge bg-secondary px-3 py-2">{{ p.status }}</span>
                                         {% endif %}
@@ -174,19 +180,18 @@
 
 
                                     <td class="small text-secondary font-monospace">
-                                        {{ p.logged_at.strftime('%Y-%m-%d %H:%M') if p.logged_at else 'N/A' }}
+                                        {{ p.logged_at.strftime('%Y-%m-%d %H:%M') if p.logged_at else t("common.not_available") }}
                                     </td>
 
                                     <td>
                                         <span class="badge bg-secondary">
-                                            <i class="fas fa-user me-1"></i>{{ p.creator.username if p.creator else 'Unknown' }}
+                                            <i class="fas fa-user me-1"></i>{{ p.creator.username if p.creator else t("common.not_available") }}
                                         </span>
                                     </td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="13" class="text-center text-muted py-4">No projects registered yet.
-                                        Fill out the form above to add one.</td>
+                                    <td colspan="13" class="text-center text-muted py-4">{{ t("project.no_projects_registered") }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -205,7 +210,7 @@
     $(document).ready(function () {
         $('.search-select').select2({
             theme: 'bootstrap-5',
-            placeholder: 'Type to search sector...',
+            placeholder: '{{ t("project.type_to_search_sector") }}',
             allowClear: true,
             width: '100%'
         });
@@ -243,20 +248,20 @@
 
         const priceValue = parseFloat(projectFieldValue('contract_price', '0')) || 0;
         const summaryRows = [
-            ['Project Name', projectFieldValue('project_name')],
-            ['Sector', projectSelectText('sector')],
-            ['Firm Name', projectFieldValue('firm_name')],
-            ['Tender ID', projectFieldValue('tender_id')],
-            ['NOA Date', projectFieldValue('noa_date')],
-            ['Work Order Year', projectFieldValue('work_order_year')],
-            ['Contract Price', `৳ ${priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
-            ['Address', projectFieldValue('address')],
-            ['Additional Details', projectFieldValue('additional_details')]
+            ['{{ t("project.project_name") }}', projectFieldValue('project_name')],
+            ['{{ t("project.sector") }}', projectSelectText('sector')],
+            ['{{ t("project.firm_name") }}', projectFieldValue('firm_name')],
+            ['{{ t("project.tender_id") }}', projectFieldValue('tender_id')],
+            ['{{ t("project.noa_date") }}', projectFieldValue('noa_date')],
+            ['{{ t("project.work_order_year") }}', projectFieldValue('work_order_year')],
+            ['{{ t("project.contract_price") }}', `৳ ${priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['{{ t("project.address") }}', projectFieldValue('address')],
+            ['{{ t("project.additional_details") }}', projectFieldValue('additional_details')]
         ];
 
         const summaryHtml = `
             <div class="text-start small">
-                <p class="mb-3 text-muted">Please review the project information before saving.</p>
+                <p class="mb-3 text-muted">{{ t("project.review_before_saving") }}</p>
                 <table class="table table-sm mb-0">
                     <tbody>
                         ${summaryRows.map(([label, value]) => `
@@ -271,14 +276,14 @@
         `;
 
         Swal.fire({
-            title: 'Confirm Project Entry?',
+            title: '{{ t("project.confirm_entry_title") }}',
             html: summaryHtml,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#198754',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fas fa-check"></i> Yes, save project',
-            cancelButtonText: '<i class="fas fa-times"></i> Review again',
+            confirmButtonText: '<i class="fas fa-check"></i> {{ t("project.yes_save_project") }}',
+            cancelButtonText: '<i class="fas fa-times"></i> {{ t("project.review_again") }}',
             backdrop: 'rgba(26, 42, 108, 0.4)',
             width: 720
         }).then((result) => {

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("cost.expenditure_ledger") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
@@ -30,21 +31,21 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
     <div>
-        <h3 class="fw-bold mb-0" style="color: var(--navy);">Expenditure Ledger</h3>
-        <p class="text-muted small mb-0">Records sorted by Date (Oldest to Newest)</p>
+        <h3 class="fw-bold mb-0" style="color: var(--navy);">{{ t("cost.expenditure_ledger") }}</h3>
+        <p class="text-muted small mb-0">{{ t("pdf.records_sorted_oldest") }}</p>
     </div>
     <div class="d-flex gap-2">
-        {% if selected_project and selected_project.status == 'Completed' and current_user.role in ['admin', 'operator'] %}
+        {% if selected_project and selected_project.status == 'Completed' and (current_user.role in ['admin', 'operator'] or current_user.is_super_admin) %}
         <a href="{{ url_for('costs.add_late_cost', project_id=selected_project.id) }}"
            class="btn btn-warning fw-bold shadow-sm">
-            <i class="fas fa-plus-circle me-1"></i> Add Late Cost
+            <i class="fas fa-plus-circle me-1"></i> {{ t("cost.add_late_cost") }}
         </a>
         {% endif %}
         <a href="{{ url_for('costs.download_pdf', **request.args) }}"
            class="btn btn-outline-danger fw-bold shadow-sm"
            id="downloadPdfBtn"
            data-result-count="{{ pagination.total if pagination else 0 }}">
-            <i class="fas fa-file-pdf me-1"></i> Download PDF
+            <i class="fas fa-file-pdf me-1"></i> {{ t("cost.download_pdf") }}
         </a>
     </div>
 </div>
@@ -54,9 +55,9 @@
         <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
         
         <div class="col-md-3">
-            <label class="form-label small fw-bold text-muted text-uppercase mb-1">Project</label>
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">{{ t("cost.project") }}</label>
             <select name="project_filter" class="form-select form-select-sm filter-node-input" onchange="this.form.submit()">
-                <option value="">All Projects</option>
+                <option value="">{{ t("cost.all_projects") }}</option>
                 {% for project in projects %}
                 <option value="{{ project.id }}" 
                     {% if request.args.get('project_filter') == project.id|string %}selected{% endif %}>
@@ -67,9 +68,9 @@
         </div>
 
         <div class="col-md-2">
-            <label class="form-label small fw-bold text-muted text-uppercase mb-1">Category</label>
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">{{ t("cost.category") }}</label>
             <select name="type_filter" class="form-select form-select-sm filter-node-input" onchange="this.form.submit()">
-                <option value="">All Categories</option>
+                <option value="">{{ t("cost.all_categories") }}</option>
                 {% for cat in categories %}
                     <option value="{{ cat }}"
                         {% if request.args.get('type_filter') == cat %}selected{% endif %}>
@@ -80,7 +81,7 @@
         </div>
 
         <div class="col-md-2">
-            <label class="form-label small fw-bold text-muted text-uppercase mb-1">From Date</label>
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">{{ t("cost.from_date") }}</label>
             <input type="text" id="start_date" name="start_date"
                 class="form-control form-control-sm filter-node-input"
                 value="{{ request.args.get('start_date', '') }}"
@@ -88,7 +89,7 @@
         </div>
 
         <div class="col-md-2">
-            <label class="form-label small fw-bold text-muted text-uppercase mb-1">To Date</label>
+            <label class="form-label small fw-bold text-muted text-uppercase mb-1">{{ t("cost.to_date") }}</label>
             <input type="text" id="end_date" name="end_date"
                 class="form-control form-control-sm filter-node-input"
                 value="{{ request.args.get('end_date', '') }}"
@@ -98,7 +99,7 @@
         <div class="col-md-2">
             <label class="form-label small fw-bold text-muted text-uppercase mb-1 d-block">&nbsp;</label>
             <a href="{{ url_for('costs.view_costs') }}" class="btn btn-sm btn-outline-danger w-100 fw-bold">
-                <i class="fas fa-times me-1"></i> Reset All Filters
+                <i class="fas fa-times me-1"></i> {{ t("cost.reset_all_filters") }}
             </a>
         </div>
 
@@ -107,31 +108,37 @@
 
 <div class="table-responsive rounded-3 shadow-sm bg-white">
     <div class="px-3 pt-2 pb-2 small text-muted text-start">
-        <span class="text-danger fw-semibold">Note:</span>
-        Negative amounts represent refunds, reimbursements, or accounting adjustments.
+        <span class="text-danger fw-semibold">{{ t("cost.note") }}:</span>
+        {{ t("cost.negative_amounts_note") }}
     </div>
     {% if costs %}
     <table class="table table-hover align-middle mb-0">
         <thead style="background-color: var(--navy); color: white;">
             <tr>
-                <th class="py-3 ps-4">Date</th>
-                <th class="py-3">Project & Location</th>
-                <th class="py-3">Type</th>
-                <th class="py-3">Remarks</th>
-                <th class="py-3">Quantity</th>
-                <th class="py-3">Unit Rate</th>
-                <th class="py-3 pe-4 text-center">Total Amount</th>
-                {% if current_user.role in ['admin', 'operator'] %}<th class="text-end pe-4">Actions</th>{% endif %}
+                <th class="py-3 ps-4">{{ t("common.date") }}</th>
+                <th class="py-3">{{ t("cost.project_location") }}</th>
+                <th class="py-3">{{ t("cost.type") }}</th>
+                <th class="py-3">{{ t("common.remarks") }}</th>
+                <th class="py-3">{{ t("cost.quantity") }}</th>
+                <th class="py-3">{{ t("cost.unit_rate") }}</th>
+                <th class="py-3 pe-4 text-center">{{ t("cost.total_amount") }}</th>
+                {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}<th class="text-end pe-4">{{ t("common.actions") }}</th>{% endif %}
             </tr>
         </thead>
         <tbody class="border-top-0">
             {% for cost in costs %}
             <tr>
                 <td class="ps-4">
-                    <div class="fw-bold text-dark">{{ cost.date.strftime('%Y-%m-%d') if cost.date else 'N/A' }}</div>
+                    <div class="fw-bold text-dark">{{ cost.date.strftime('%Y-%m-%d') if cost.date else t("common.not_available") }}</div>
                 </td>
                 <td>
-                    <div class="fw-bold">{{ cost.project.project_name }}</div>
+                    <div class="fw-bold">
+                        <a class="project-name-glass text-decoration-none"
+                           href="{{ url_for('projects.view_projects', project_id=cost.project_id) }}"
+                           title="{{ t('project.ledger_title') }}: {{ cost.project.project_name }}">
+                            {{ cost.project.project_name }}
+                        </a>
+                    </div>
                     <small class="text-muted">{{ cost.project.address }}</small>
                 </td>
                 <td><span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill fw-bold">{{ cost.cost_type | upper }}</span></td>
@@ -141,10 +148,10 @@
                 <td class="text-center {{ 'text-danger fw-semibold' if cost.total_amount < 0 else '' }}">
                         ৳ {{ "{:,.2f}".format(cost.total_amount) }}
                 </td>
-                {% if current_user.role in ['admin', 'operator'] %}
+                {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
                     <td class="text-end pe-4">
                         <div class="btn-group shadow-sm bg-white rounded">
-                            <a href="{{ url_for('construction_admin.edit_cost', cost_id=cost.id) }}" class="btn btn-sm btn-outline-light border-0 text-info" title="Edit">
+                            <a href="{{ url_for('construction_admin.edit_cost', cost_id=cost.id) }}" class="btn btn-sm btn-outline-light border-0 text-info" title="{{ t('common.edit') }}">
                                 <i class="fas fa-edit"></i>
                             </a>
                             <button type="button" 
@@ -155,7 +162,7 @@
                                     data-cost-date="{{ cost.date.strftime('%Y-%m-%d') }}"
                                     data-cost-amount="{{ "{:,.2f}".format(cost.total_amount) }}"
                                     data-void-url="{{ url_for('construction_admin.void_cost', cost_id=cost.id) }}"
-                                    title="Delete Entry">
+                                    title="{{ t('cost.delete_expenditure_entry') }}">
                                 <i class="fas fa-trash-restore"></i>
                             </button>
                         </div>
@@ -167,24 +174,24 @@
         <tfoot class="bg-light">
             <tr>
                 <td colspan="6" class="text-end fw-bold py-3">
-                    Total Page Expenditure:
+                    {{ t("cost.total_page_expenditure") }}:
                 </td>
                 <td class="pe-4 text-end fw-bold text-danger fs-5 py-3">
                     ৳ {{ "{:,.2f}".format(costs | map(attribute='total_amount') | sum) }}
                 </td>
-                {% if current_user.role in ['admin', 'operator'] %}<td></td>{% endif %}
+                {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}<td></td>{% endif %}
             </tr>
         </tfoot>
     </table>
     {% else %}
     <div class="text-center py-5">
         <i class="fas fa-search text-muted mb-3" style="font-size: 3rem; opacity: 0.3;"></i>
-        <h4 class="fw-bold text-muted">No Costs Found</h4>
-        <p class="text-secondary mb-0">Try changing your filters.</p>
+        <h4 class="fw-bold text-muted">{{ t("cost.no_costs_found_title") }}</h4>
+        <p class="text-secondary mb-0">{{ t("cost.try_changing_filters") }}</p>
     </div>
     {% endif %}
 </div>
-{% set pagination_label = 'cost entries' %}
+{% set pagination_label = t('cost.cost_records') %}
 {% include "_pagination.html" %}
 
 <div class="modal fade" id="voidModal" tabindex="-1" aria-labelledby="voidModalLabel" aria-hidden="true">
@@ -192,19 +199,19 @@
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="voidModalLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i> Delete Expenditure Entry
+                    <i class="fas fa-exclamation-triangle me-2"></i> {{ t("cost.delete_expenditure_entry") }}
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ t('common.close') }}"></button>
             </div>
             <form method="POST" id="voidForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="modal-body p-4">
                     <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-dark small mb-4">
-                        <strong>Warning:</strong> This entry will be removed from the active ledger and archived in the Deleted Log.
+                        <strong>{{ t("cost.warning") }}:</strong> {{ t("cost.delete_warning") }}
                     </div>
                     
                     <div class="mb-3">
-                        <p class="mb-1 text-muted small uppercase fw-bold">Target Entry</p>
+                        <p class="mb-1 text-muted small uppercase fw-bold">{{ t("cost.target_entry") }}</p>
                         <div class="p-3 bg-light rounded border">
                             <div class="d-flex justify-content-between">
                                 <span class="text-secondary" id="displayDate"></span>
@@ -214,28 +221,28 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="void_reason" class="form-label fw-bold text-navy">Reason for Deleting <span class="text-danger">*</span></label>
+                        <label for="void_reason" class="form-label fw-bold text-navy">{{ t("cost.reason_for_deleting") }} <span class="text-danger">*</span></label>
                         <textarea class="form-control border-2" 
                                   id="void_reason" 
                                   name="void_reason" 
                                   rows="3" 
-                                  placeholder="e.g., Duplicate entry, incorrect unit rate, wrong project selected" 
+                                  placeholder="{{ t('cost.delete_reason_placeholder') }}" 
                                   required></textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="confirm_password" class="form-label fw-bold text-navy">Confirm Your Password <span class="text-danger">*</span></label>
+                        <label for="confirm_password" class="form-label fw-bold text-navy">{{ t("project.confirm_your_password") }} <span class="text-danger">*</span></label>
                         <input type="password"
                                id="confirm_password"
                                name="confirm_password"
                                class="form-control border-2 js-password-toggle"
-                               placeholder="Enter password to authorize"
+                               placeholder="{{ t('project.enter_password_to_authorize') }}"
                                required>
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-top-0">
-                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">{{ t("common.cancel") }}</button>
                     <button type="submit" class="btn btn-danger px-4 fw-bold">
-                        Confirm Delete
+                        {{ t("project.confirm_delete") }}
                     </button>
                 </div>
             </form>
@@ -275,7 +282,7 @@
                 const costDate = button.getAttribute('data-cost-date');
                 const costAmount = button.getAttribute('data-cost-amount');
                 document.getElementById('voidForm').action = button.getAttribute('data-void-url');
-                document.getElementById('displayDate').textContent = 'Date: ' + costDate;
+                document.getElementById('displayDate').textContent = '{{ t("common.date") }}: ' + costDate;
                 document.getElementById('displayAmount').textContent = costAmount;
                 const reasonField = document.getElementById('void_reason');
                 const passwordField = document.getElementById('confirm_password');
@@ -298,8 +305,8 @@
                 if (!projectValue && !categoryValue && !startDate && !endDate) {
                     event.preventDefault();
                     Swal.fire({
-                        title: 'Select a Filter First',
-                        text: 'Please choose at least one filter before generating a PDF report.',
+                        title: '{{ t("cost.select_filter_first") }}',
+                        text: '{{ t("cost.choose_filter_before_pdf") }}',
                         icon: 'warning',
                         confirmButtonColor: '#dc3545',
                         backdrop: 'rgba(26, 42, 108, 0.4)'
@@ -311,24 +318,24 @@
 
                 const projectText = projectValue
                     ? projectSelect.options[projectSelect.selectedIndex].text.trim()
-                    : 'All Projects';
-                const categoryText = categoryValue || 'All Categories';
-                const fromText = startDate || 'All Time';
-                const toText = endDate || 'All Time';
+                    : '{{ t("cost.all_projects") }}';
+                const categoryText = categoryValue || '{{ t("cost.all_categories") }}';
+                const fromText = startDate || '{{ t("cost.all_time") }}';
+                const toText = endDate || '{{ t("cost.all_time") }}';
                 const resultCount = Number(downloadPdfBtn.dataset.resultCount || 0).toLocaleString();
                 const broadExportWarning = !projectValue
-                    ? '<div class="alert alert-warning py-2 px-3 mt-3 mb-0"><strong>All Projects selected.</strong> This can create a large report. Use Project or Date filters when you only need one ledger.</div>'
+                    ? '<div class="alert alert-warning py-2 px-3 mt-3 mb-0"><strong>{{ t("cost.all_projects_selected") }}</strong> {{ t("cost.large_report_warning") }}</div>'
                     : '';
 
                 Swal.fire({
-                    title: 'Generate PDF Report?',
+                    title: '{{ t("cost.generate_pdf_report") }}',
                     html: `
                         <div class="text-start small">
-                            <div><strong>Project:</strong> ${projectText}</div>
-                            <div><strong>Category:</strong> ${categoryText}</div>
-                            <div><strong>From Date:</strong> ${fromText}</div>
-                            <div><strong>To Date:</strong> ${toText}</div>
-                            <div><strong>Matching Records:</strong> ${resultCount}</div>
+                            <div><strong>{{ t("cost.project") }}:</strong> ${projectText}</div>
+                            <div><strong>{{ t("cost.category") }}:</strong> ${categoryText}</div>
+                            <div><strong>{{ t("cost.from_date") }}:</strong> ${fromText}</div>
+                            <div><strong>{{ t("cost.to_date") }}:</strong> ${toText}</div>
+                            <div><strong>{{ t("cost.matching_records") }}:</strong> ${resultCount}</div>
                             ${broadExportWarning}
                         </div>
                     `,
@@ -336,8 +343,8 @@
                     showCancelButton: true,
                     confirmButtonColor: '#dc3545',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-file-pdf"></i> Generate PDF',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: '<i class="fas fa-file-pdf"></i> {{ t("cost.generate_pdf") }}',
+                    cancelButtonText: '{{ t("common.cancel") }}',
                     backdrop: 'rgba(26, 42, 108, 0.4)'
                 }).then((result) => {
                     if (result.isConfirmed) {

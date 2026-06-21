@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("edit_project.title") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 {% set selected_sector = form.get('sector', project.sector) %}
@@ -17,10 +18,10 @@
                             <div class="bg-warning bg-opacity-10 p-3 rounded-circle me-3">
                                 <i class="fas fa-edit text-warning fs-4"></i>
                             </div>
-                            <h4 class="fw-bold mb-0" style="color: var(--navy);">Edit Project Details</h4>
+                            <h4 class="fw-bold mb-0" style="color: var(--navy);">{{ t("edit_project.title") }}</h4>
                         </div>
                         <a href="{{ url_for('projects.view_projects') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Projects
+                            <i class="fas fa-arrow-left me-1"></i> {{ t("edit_project.back_to_projects") }}
                         </a>
                     </div>
                 </div>
@@ -29,8 +30,8 @@
                     <div class="alert alert-warning bg-warning bg-opacity-10 border-0 text-dark small d-flex align-items-center mb-4 rounded-3 shadow-sm">
                         <i class="fas fa-info-circle fs-4 me-3 text-warning"></i>
                         <div>
-                            Modifying records for <strong>{{ project.project_name }}</strong>. <br>
-                            <span class="opacity-75">Updates made here will be reflected across all cost tracking and reports.</span>
+                            {{ t("edit_project.modifying_records") }} <strong>{{ project.project_name }}</strong>. <br>
+                            <span class="opacity-75">{{ t("edit_project.update_reflected") }}</span>
                         </div>
                     </div>
 
@@ -38,19 +39,19 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold text-secondary">Project ID</label>
+                                <label class="form-label fw-bold text-secondary">{{ t("edit_project.project_id") }}</label>
                                 <input type="text" class="form-control bg-white fw-bold text-muted" value="{{ project.id }}" readonly>
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Project Name <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_project.project_name") }} <span class="text-danger">*</span></label>
                                 <input type="text" name="project_name" class="form-control fw-bold" maxlength="200" required value="{{ form.get('project_name', project.project_name) }}">
                             </div>
                             
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Sector <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_project.sector") }} <span class="text-danger">*</span></label>
                                 <select name="sector" class="form-select search-select" required>
-                                    <option value="">Search Sector...</option>
+                                    <option value="">Search {{ t("edit_project.sector") }}...</option>
                                     {% for sector in sectors %}
                                     <option value="{{ sector }}" {% if selected_sector == sector %}selected{% endif %}>{{ sector }}</option>
                                     {% endfor %}
@@ -61,38 +62,38 @@
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Firm Name</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.firm_name") }}</label>
                                 <input type="text" name="firm_name" class="form-control" maxlength="200" value="{{ form.get('firm_name', project.firm_name or '') }}">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Tender ID</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.tender_id") }}</label>
                                 <input type="text" name="tender_id" class="form-control" maxlength="100" value="{{ form.get('tender_id', project.tender_id or '') }}">
                             </div>
 
                             <div class="col-md-3 mb-3">
-                                <label class="form-label fw-bold">NOA Date</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.noa_date") }}</label>
                                 <input type="date" name="noa_date" class="form-control" value="{{ form.get('noa_date', project.noa_date or '') }}">
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label fw-bold">Work Order Year</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.work_order_year") }}</label>
                                 <input type="text" name="work_order_year" class="form-control" value="{{ form.get('work_order_year', project.work_order_year or '') }}">
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label fw-bold">Contract Price (৳)</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.contract_price") }}</label>
                                 <input type="number" step="0.01" name="contract_price" class="form-control fw-bold text-success" value="{{ form.get('contract_price', project.contract_price or '') }}">
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label class="form-label fw-bold">Project Status</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.project_status") }}</label>
                                 <select name="status" id="projectStatus" class="form-select">
-                                    <option value="Running" {% if selected_status == 'Running' %}selected{% endif %}>Running</option>
-                                    <option value="Completed" {% if selected_status == 'Completed' %}selected{% endif %}>Completed</option>
-                                    <option value="On Hold" {% if selected_status == 'On Hold' %}selected{% endif %}>On Hold</option>
+                                    <option value="Running" {% if selected_status == 'Running' %}selected{% endif %}>{{ t("edit_project.running") }}</option>
+                                    <option value="Completed" {% if selected_status == 'Completed' %}selected{% endif %}>{{ t("edit_project.completed") }}</option>
+                                    <option value="On Hold" {% if selected_status == 'On Hold' %}selected{% endif %}>{{ t("edit_project.on_hold") }}</option>
                                 </select>
                             </div>
 
                             <div class="col-md-3 mb-3" id="completionDateGroup">
-                                <label class="form-label fw-bold">Completion Date <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_project.completion_date") }} <span class="text-danger">*</span></label>
                                 <input type="date"
                                        name="completion_date"
                                        id="completionDate"
@@ -101,12 +102,12 @@
                             </div>
 
                             <div class="col-12 mb-4">
-                                <label class="form-label fw-bold">Full Site Address <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">{{ t("edit_project.full_site_address") }} <span class="text-danger">*</span></label>
                                 <textarea name="address" class="form-control" rows="2" maxlength="500" required>{{ form.get('address', project.address) }}</textarea>
                             </div>
 
                             <div class="col-12 mb-4">
-                                <label class="form-label fw-bold">Additional Details</label>
+                                <label class="form-label fw-bold">{{ t("edit_project.additional_details") }}</label>
                                 <textarea name="additional_details" class="form-control" rows="2">{{ form.get('additional_details', project.additional_details or '') }}</textarea>
                             </div>
                         </div>
@@ -114,21 +115,21 @@
                         <div class="mb-3 border-top pt-4 mt-2">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-shield-alt me-1 text-danger"></i>
-                                Confirm Your Password <span class="text-danger">*</span>
+                                {{ t("edit_project.confirm_password") }} <span class="text-danger">*</span>
                             </label>
                             <input type="password" 
                                    name="confirm_password" 
                                    class="form-control border-danger js-password-toggle" 
-                                   placeholder="Enter your password to authorize this change" 
+                                   placeholder="{{ t("edit_project.password_placeholder") }}" 
                                    required>
                             <div class="form-text text-muted small mt-2">
-                                Required to confirm it's really you making this change.
+                                {{ t("edit_project.password_help") }}
                             </div>
                         </div>
 
                         <div class="d-grid mt-4">
                             <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold shadow-sm border-0 text-dark">
-                                <i class="fas fa-save me-2"></i> UPDATE PROJECT
+                                <i class="fas fa-save me-2"></i> {{ t("edit_project.update_project") }}
                             </button>
                         </div>
                     </form>
@@ -149,7 +150,7 @@
     $(document).ready(function () {
         $('.search-select').select2({
             theme: 'bootstrap-5',
-            placeholder: 'Type to search sector...',
+            placeholder: '{{ t("edit_project.search_sector_placeholder") }}',
             allowClear: true,
             width: '100%'
         });
@@ -160,11 +161,11 @@
     if (errorTracker && errorTracker.dataset.hasError === 'true') {
         window.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
-                title: 'Authentication Failed!',
-                text: 'The password you entered is incorrect. No changes were saved.',
+                title: '{{ t("edit_project.authentication_failed") }}',
+                text: '{{ t("edit_project.authentication_failed_text") }}',
                 icon: 'error',
                 confirmButtonColor: '#e63946',
-                confirmButtonText: 'Try Again',
+                confirmButtonText: '{{ t("common.try_again") }}',
                 backdrop: 'rgba(26, 42, 108, 0.4)'
             });
         });
@@ -193,14 +194,14 @@
         const projectName = document.querySelector('input[name="project_name"]').value;
 
         Swal.fire({
-            title: 'Confirm Project Updates?',
-            html: `You are modifying the registry details for <strong class="text-warning">${projectName}</strong>.`,
+            title: '{{ t("edit_project.confirm_updates") }}',
+            html: `{{ t("edit_project.confirm_updates_html")|replace("{project}", "${projectName}") }}`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ffc107',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fas fa-check-circle"></i> Yes, update it!',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: '<i class="fas fa-check-circle"></i> {{ t("edit_project.yes_update") }}',
+            cancelButtonText: '{{ t("common.cancel") }}',
             backdrop: `rgba(26, 42, 108, 0.4)`
         }).then((result) => {
             if (result.isConfirmed) {

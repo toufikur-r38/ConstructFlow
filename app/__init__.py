@@ -1,13 +1,17 @@
-from flask import Flask, redirect, url_for, flash, request, g
+from flask import Flask, redirect, url_for, flash, request, g, session, render_template
+from flask_wtf.csrf import CSRFError
 from flask_login import current_user
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, InternalServerError, MethodNotAllowed, NotFound
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 import json
 import time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from .config import Config
 from .extensions import db, login_manager, csrf, cache, limiter, migrate
 from .utils.logging_config import configure_logging
+from .utils.i18n import current_language, normalize_language, supported_languages, translate as t
 
 
 def create_app():
@@ -58,6 +62,67 @@ def create_app():
         base_url = url_for(request.endpoint, **(request.view_args or {}))
         return f"{base_url}?{query_string}" if query_string else base_url
 
+    @app.context_processor
+    def inject_i18n_helpers():
+        from app.models import AVAILABLE_MODULES
+
+        visible_modules = {}
+        module_home_url = None
+        if current_user and current_user.is_authenticated:
+            visible_modules = {
+                module_name: module_label
+                for module_name, module_label in AVAILABLE_MODULES.items()
+                if current_user.has_module(module_name)
+            }
+            if current_user.is_super_admin or len(visible_modules) > 1:
+                module_home_url = url_for('module_hub')
+            elif 'construction' in visible_modules:
+                module_home_url = url_for('dashboard.index')
+            else:
+                module_home_url = url_for('account.profile')
+
+        return {
+            "t": t,
+            "current_lang": current_language(),
+            "supported_languages": supported_languages(),
+            "available_modules": AVAILABLE_MODULES,
+            "visible_modules": visible_modules,
+            "module_home_url": module_home_url,
+        }
+
+    @app.route('/set-language/<lang>')
+    def set_language(lang):
+        session['lang'] = normalize_language(lang)
+        return redirect(_safe_redirect_target())
+
+    @app.route('/')
+    @app.route('/modules')
+    def module_hub():
+        if not current_user or not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+
+        from app.models import AVAILABLE_MODULES
+
+        visible_modules = {
+            module_name: module_label
+            for module_name, module_label in AVAILABLE_MODULES.items()
+            if current_user.has_module(module_name)
+        }
+
+        if not current_user.is_super_admin and len(visible_modules) == 1 and 'construction' in visible_modules:
+            return redirect(url_for('dashboard.index'))
+
+        module_overviews = {}
+        if 'construction' in visible_modules:
+            from app.modules.construction.services.dashboard_service import get_dashboard_math
+            module_overviews['construction'] = get_dashboard_math()
+
+        return render_template(
+            'modules.html',
+            visible_modules=visible_modules,
+            module_overviews=module_overviews,
+        )
+
     # Import models
     from . import models
     from .cli import register_cli_commands
@@ -73,24 +138,94 @@ def create_app():
     app.register_blueprint(account_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
-    app.register_blueprint(construction_admin_bp)
-    app.register_blueprint(dashboard_bp)
-    app.register_blueprint(projects_bp)
-    app.register_blueprint(costs_bp)
+    app.register_blueprint(construction_admin_bp, url_prefix='/construction')
+    app.register_blueprint(dashboard_bp, url_prefix='/construction')
+    app.register_blueprint(projects_bp, url_prefix='/construction')
+    app.register_blueprint(costs_bp, url_prefix='/construction')
 
     # Error Handlers
+    def _safe_redirect_target(default_endpoint='module_hub'):
+        target = request.referrer or url_for(default_endpoint)
+        parsed_target = urlparse(target)
+        if parsed_target.netloc and parsed_target.netloc != request.host:
+            return url_for(default_endpoint)
+        return target
+
+    def _render_error(status_code, title_key, message_key):
+        return render_template(
+            'error.html',
+            status_code=status_code,
+            title_key=title_key,
+            message_key=message_key,
+        ), status_code
+
+    @app.errorhandler(CSRFError)
+    def csrf_error_handler(e):
+        logging.warning(
+            "SECURITY: CSRF validation failed for %s %s from %s: %s",
+            request.method,
+            request.path,
+            request.remote_addr,
+            e.description,
+        )
+        flash("errors.csrf_expired", "warning")
+        return redirect(url_for('auth.login') if not current_user.is_authenticated else _safe_redirect_target())
+
     @app.errorhandler(429)
     def ratelimit_handler(e):
         logging.warning(
             f"SECURITY: Rate limit exceeded by IP {request.remote_addr}"
         )
 
-        flash(
-            "Too many requests. Please wait before trying again.",
-            "danger"
-        )
+        flash("Too many requests. Please wait before trying again.", "danger")
 
-        return redirect(url_for("dashboard.index"))
+        return redirect(_safe_redirect_target())
+
+    @app.errorhandler(BadRequest)
+    def bad_request_handler(e):
+        logging.warning("Bad request at %s %s: %s", request.method, request.path, e)
+        return _render_error(400, "errors.bad_request_title", "errors.bad_request_message")
+
+    @app.errorhandler(Forbidden)
+    def forbidden_handler(e):
+        logging.warning("Forbidden request at %s %s: %s", request.method, request.path, e)
+        return _render_error(403, "errors.forbidden_title", "errors.forbidden_message")
+
+    @app.errorhandler(NotFound)
+    def not_found_handler(e):
+        return _render_error(404, "errors.not_found_title", "errors.not_found_message")
+
+    @app.errorhandler(MethodNotAllowed)
+    def method_not_allowed_handler(e):
+        logging.warning("Method not allowed at %s %s", request.method, request.path)
+        return _render_error(405, "errors.method_not_allowed_title", "errors.method_not_allowed_message")
+
+    @app.errorhandler(OperationalError)
+    def database_connection_error_handler(e):
+        db.session.rollback()
+        logging.exception("Database connection error at %s %s", request.method, request.path)
+        flash("errors.database_connection_lost", "danger")
+        return redirect(_safe_redirect_target())
+
+    @app.errorhandler(SQLAlchemyError)
+    def database_error_handler(e):
+        db.session.rollback()
+        logging.exception("Database error at %s %s", request.method, request.path)
+        return _render_error(500, "errors.database_error_title", "errors.database_error_message")
+
+    @app.errorhandler(InternalServerError)
+    def internal_server_error_handler(e):
+        db.session.rollback()
+        logging.exception("Internal server error at %s %s", request.method, request.path)
+        return _render_error(500, "errors.server_error_title", "errors.server_error_message")
+
+    @app.errorhandler(Exception)
+    def unhandled_error_handler(e):
+        if isinstance(e, HTTPException):
+            return e
+        db.session.rollback()
+        logging.exception("Unhandled error at %s %s", request.method, request.path)
+        return _render_error(500, "errors.server_error_title", "errors.server_error_message")
 
     @app.before_request
     def start_request_timer():
@@ -98,6 +233,17 @@ def create_app():
         if current_user and current_user.is_authenticated:
             g.request_user = current_user.username
             g.request_role = current_user.role
+            construction_endpoints = ('dashboard.', 'projects.', 'costs.', 'construction_admin.')
+            if request.endpoint and request.endpoint.startswith(construction_endpoints):
+                if not current_user.has_module('construction'):
+                    logging.warning(
+                        "SECURITY: '%s' (Role: %s) attempted unauthorized construction module access to %s",
+                        current_user.username,
+                        current_user.role,
+                        request.path,
+                    )
+                    flash("flash.no_construction_module_access", "danger")
+                    return redirect(url_for('account.profile'))
         else:
             g.request_user = 'anonymous'
             g.request_role = '-'

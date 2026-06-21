@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ConstructFlow - Secure Login</title>
+    <title>{{ t("common.app_name") }} - {{ t("auth.secure_workspace") }}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -143,6 +143,33 @@
             font-size: 0.86rem;
         }
 
+        .language-switch {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #dfe5ef;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .language-switch a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .language-switch a:hover,
+        .language-switch a.active {
+            color: var(--navy);
+            background: #eef3fb;
+        }
+
         .verification-overlay {
             position: fixed;
             inset: 0;
@@ -194,7 +221,7 @@
             }
 
             .login-panel {
-                padding: 32px 24px;
+                padding: 56px 24px 32px;
             }
         }
     </style>
@@ -206,25 +233,30 @@
         <div>
             <img src="{{ url_for('static', filename='img/ConstructFlow-logo.png') }}" alt="ConstructFlow Logo" class="brand-logo">
             <h1 class="brand-title">ConstructFlow</h1>
-            <p class="brand-subtitle">Construction Project Cost Management for project ledgers, cost tracking, reporting, and audit control.</p>
+            <p class="brand-subtitle">{{ t("auth.sr_login_subtitle") }}</p>
         </div>
         <div class="security-strip">
             <i class="fas fa-shield-alt text-warning"></i>
-            <span>Authorized staff access only. All activity is logged.</span>
+            <span>{{ t("Authorized staff access only. All activity is logged.") }}</span>
         </div>
     </section>
 
     <section class="login-panel">
-        <div class="login-kicker">Secure Workspace</div>
-        <h2 class="login-heading">Sign in to continue</h2>
-        <p class="login-copy">Verify your credentials to access the ConstructFlow project tracker.</p>
+        <div class="language-switch" aria-label="{{ t('Language') }}">
+            <a href="{{ url_for('set_language', lang='en') }}" class="{% if current_lang == 'en' %}active{% endif %}">EN</a>
+            <a href="{{ url_for('set_language', lang='bn') }}" class="{% if current_lang == 'bn' %}active{% endif %}">বাংলা</a>
+        </div>
+
+        <div class="login-kicker">{{ t("Secure Workspace") }}</div>
+        <h2 class="login-heading">{{ t("Sign in to continue") }}</h2>
+        <p class="login-copy">{{ t("auth.sr_login_intro") }}</p>
 
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
                     <div class="alert alert-danger alert-dismissible fade show shadow-sm py-2" role="alert">
-                        <i class="fas fa-exclamation-triangle me-2"></i><strong>{{ message }}</strong>
-                        <button type="button" class="btn-close pb-1" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <i class="fas fa-exclamation-triangle me-2"></i><strong>{{ t(message) }}</strong>
+                        <button type="button" class="btn-close pb-1" data-bs-dismiss="alert" aria-label="{{ t('common.close') }}"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -234,19 +266,19 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
             <div class="mb-3">
-                <label class="form-label text-muted small fw-bold">Username</label>
+                <label class="form-label text-muted small fw-bold">{{ t("Username") }}</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-user text-secondary"></i></span>
-                    <input type="text" class="form-control border-start-0" name="username" value="{{ username or '' }}" required autocomplete="username" placeholder="Enter username">
+                    <input type="text" class="form-control border-start-0" name="username" value="{{ username or '' }}" required autocomplete="username" placeholder="{{ t('Enter username') }}">
                 </div>
             </div>
 
             <div class="mb-4">
-                <label class="form-label text-muted small fw-bold">Password</label>
+                <label class="form-label text-muted small fw-bold">{{ t("Password") }}</label>
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-lock text-secondary"></i></span>
-                    <input type="password" class="form-control border-start-0 border-end-0 js-login-password-toggle" name="password" id="passwordInput" required autocomplete="current-password" placeholder="Enter password">
-                    <button type="button" class="input-group-text bg-white border-start-0" data-password-toggle-for="passwordInput" aria-label="Show password">
+                    <input type="password" class="form-control border-start-0 border-end-0 js-login-password-toggle" name="password" id="passwordInput" required autocomplete="off" placeholder="{{ t('Enter password') }}">
+                    <button type="button" class="input-group-text bg-white border-start-0" data-password-toggle-for="passwordInput" aria-label="{{ t('Show password') }}">
                         <i class="fas fa-eye text-secondary"></i>
                     </button>
                 </div>
@@ -254,7 +286,7 @@
 
             <div class="d-grid mb-3">
                 <button type="submit" class="btn btn-primary btn-login rounded-3" id="loginButton">
-                    <i class="fas fa-right-to-bracket me-2"></i> Verify & Login
+                    <i class="fas fa-right-to-bracket me-2"></i> {{ t("Verify & Login") }}
                 </button>
             </div>
         </form>
@@ -262,7 +294,7 @@
         <div class="help-box p-3 mt-4">
             <div class="d-flex align-items-center">
                 <i class="fas fa-circle-info fs-5 me-3 text-danger"></i>
-                <span>For locked accounts or lost credentials, contact the system administrator.</span>
+                <span>{{ t("For locked accounts or lost credentials, contact the system administrator.") }}</span>
             </div>
         </div>
     </section>
@@ -271,8 +303,8 @@
 <div class="verification-overlay" id="verificationOverlay" aria-live="polite">
     <div class="verification-card">
         <div class="spinner-ring"></div>
-        <h5 class="fw-bold mb-2" style="color: var(--navy);">Verifying credentials</h5>
-        <p class="text-muted small mb-0">Please wait while we securely check your access.</p>
+        <h5 class="fw-bold mb-2" style="color: var(--navy);">{{ t("Verifying credentials") }}</h5>
+        <p class="text-muted small mb-0">{{ t("Please wait while we securely check your access.") }}</p>
     </div>
 </div>
 
@@ -287,7 +319,7 @@
         passwordInput.type = isPassword ? 'text' : 'password';
         icon.classList.toggle('fa-eye', !isPassword);
         icon.classList.toggle('fa-eye-slash', isPassword);
-        this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        this.setAttribute('aria-label', isPassword ? '{{ t("Hide password") }}' : '{{ t("Show password") }}');
         });
     });
 
@@ -295,7 +327,7 @@
         document.getElementById('verificationOverlay').classList.add('is-active');
         const button = document.getElementById('loginButton');
         button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> Verifying...';
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> {{ t("Verifying...") }}';
     });
 </script>
 </body>

@@ -14,7 +14,11 @@ class Config:
     IS_DEVELOPMENT = _is_development()
 
     # AUTHENTICATION 
-    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY and not IS_DEVELOPMENT:
+        raise RuntimeError("SECRET_KEY is required in production. Refusing to start with a random key.")
+    SECRET_KEY = SECRET_KEY or secrets.token_hex(32)
+    WTF_CSRF_TIME_LIMIT = int(os.environ.get('WTF_CSRF_TIME_LIMIT', 3600))
 
     # DATABASE ---
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))

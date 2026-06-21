@@ -5,7 +5,7 @@ import click
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-from app.models import User
+from app.models import User, UserModule
 from app.modules.construction.utils.dropdown_options import seed_dropdown_options
 
 
@@ -25,7 +25,9 @@ def register_cli_commands(app):
             full_name='System Administrator',
             password=generate_password_hash(default_admin_password, method='pbkdf2:sha256'),
             role='admin',
+            is_super_admin=True,
         )
+        admin_user.module_access.append(UserModule(module_name='construction'))
 
         db.session.add(admin_user)
         db.session.commit()

@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% block title %}{{ t("admin.edit_user_profile") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 {% set form = form_data or {} %}
 {% set selected_role = form.get('role', user.role) %}
@@ -40,10 +41,10 @@
                             <div class="bg-info bg-opacity-10 p-3 rounded-circle me-3">
                                 <i class="fas fa-user-edit text-info fs-4"></i>
                             </div>
-                            <h4 class="fw-bold mb-0" style="color: var(--navy);">Edit User Profile</h4>
+                            <h4 class="fw-bold mb-0" style="color: var(--navy);">{{ t("admin.edit_user_profile") }}</h4>
                         </div>
                         <a href="{{ url_for('admin.register') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
-                            <i class="fas fa-arrow-left me-1"></i> Back
+                            <i class="fas fa-arrow-left me-1"></i> {{ t("admin.back") }}
                         </a>
                     </div>
                 </div>
@@ -52,8 +53,8 @@
                     <div class="alert alert-info bg-info bg-opacity-10 border-0 text-info small d-flex align-items-center mb-4 rounded-3">
                         <i class="fas fa-info-circle fs-4 me-3"></i>
                         <div>
-                            Editing profile for <strong>@{{ user.username }}</strong>. <br>
-                            <span class="opacity-75">The username is a unique identifier and cannot be changed.</span>
+                            {{ t("admin.editing_profile_for") }} <strong>@{{ user.username }}</strong>. <br>
+                            <span class="opacity-75">{{ t("admin.username_cannot_change") }}</span>
                         </div>
                     </div>
 
@@ -61,7 +62,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Full Name <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.full_name") }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-id-card"></i></span>
                                 <input type="text" name="full_name" class="form-control form-control-node with-icon" maxlength="100" value="{{ form.get('full_name', user.full_name) }}" required>
@@ -69,34 +70,62 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Access Level / Role <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.role") }} <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-shield-alt"></i></span>
                                 <select name="role" id="userRole" class="form-select form-control-node with-icon" required {% if user.id == current_user.id %}disabled{% endif %}>
-                                    <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
-                                    <option value="operator" {% if selected_role == 'operator' %}selected{% endif %}>Operator (Add Data)</option>
-                                    <option value="viewer" {% if selected_role == 'viewer' %}selected{% endif %}>Viewer (Read-Only)</option>
+                                    <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>{{ t("admin.admin_full_access") }}</option>
+                                    <option value="operator" {% if selected_role == 'operator' %}selected{% endif %}>{{ t("admin.operator_add_data") }}</option>
+                                    <option value="viewer" {% if selected_role == 'viewer' %}selected{% endif %}>{{ t("admin.viewer_read_only") }}</option>
                                 </select>
                             </div>
                             {% if user.id == current_user.id %}
-                                <div class="form-text text-danger small mt-2"><i class="fas fa-exclamation-triangle me-1"></i> You cannot change your own admin role.</div>
+                                <div class="form-text text-danger small mt-2"><i class="fas fa-exclamation-triangle me-1"></i> {{ t("admin.cannot_change_own_role") }}</div>
                                 <input type="hidden" name="role" value="admin">
                             {% endif %}
                         </div>
 
                         <div class="mb-4 mt-4">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Reset Password</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.module_access") }} <span class="text-danger">*</span></label>
+                            <div class="border rounded-3 p-3 bg-light">
+                                {% for module_name, module_label in available_modules.items() %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="modules" value="{{ module_name }}" id="module-{{ module_name }}"
+                                           {% if module_name in selected_module_names %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="module-{{ module_name }}">
+                                        {{ t(module_label) }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        {% if current_user.can_manage_system() %}
+                        <div class="mb-4">
+                            <div class="form-check form-switch border rounded-3 p-3 ps-5 bg-warning bg-opacity-10">
+                                <input class="form-check-input" type="checkbox" role="switch" name="is_super_admin" value="1" id="isSuperAdmin"
+                                       {% if form.get('is_super_admin', '1' if user.is_super_admin else '') == '1' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold" for="isSuperAdmin">
+                                    {{ t("admin.super_admin") }}
+                                </label>
+                                <div class="form-text text-muted small">{{ t("admin.super_admin_help") }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-4 mt-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">{{ t("admin.reset_password") }}</label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node"><i class="fas fa-key"></i></span>
-                                <input type="password" name="password" class="form-control form-control-node with-icon js-password-toggle" placeholder="Leave blank to keep current password">
+                                <input type="password" name="password" class="form-control form-control-node with-icon js-password-toggle" placeholder="{{ t("admin.keep_password_placeholder") }}">
                             </div>
-                            <div class="form-text text-muted small mt-2">Only type here if you need to override and reset the user's forgotten password.</div>
+                            <div class="form-text text-muted small mt-2">{{ t("admin.reset_password_help") }}</div>
                         </div>
                         
                         <div class="mb-3 border-top pt-4 mt-2">
                             <label class="form-label small fw-bold text-muted text-uppercase">
                                 <i class="fas fa-shield-alt me-1 text-danger"></i> 
-                                Confirm Your Password <span class="text-danger">*</span>
+                                {{ t("admin.confirm_your_password") }} <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text input-group-text-node">
@@ -105,17 +134,17 @@
                                <input type="password" 
                                        name="confirm_password" 
                                        class="form-control form-control-node with-icon js-password-toggle" 
-                                       placeholder="Enter your password to authorize this change" 
+                                       placeholder="{{ t("admin.authorize_change_placeholder") }}" 
                                        required>
                             </div>
                             <div class="form-text text-muted small mt-2">
-                                Required to confirm it's really you making this change.
+                                {{ t("admin.confirm_identity_help") }}
                             </div>
                         </div>
 
                         <div class="d-grid mt-5">
                             <button type="submit" class="btn btn-info text-white py-3 fw-bold rounded-3 shadow-sm border-0" style="font-size: 1.05rem;">
-                                <i class="fas fa-save me-2"></i> Update Profile
+                                <i class="fas fa-save me-2"></i> {{ t("admin.update_profile") }}
                             </button>
                         </div>
                     </form>
@@ -137,11 +166,11 @@
     if (errorTracker && errorTracker.dataset.hasError === 'true') {
         window.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
-                title: 'Authentication Failed!',
-                text: 'The admin password you entered is incorrect. No changes were saved.',
+                title: '{{ t("admin.authentication_failed") }}',
+                text: '{{ t("admin.auth_failed_text") }}',
                 icon: 'error',
                 confirmButtonColor: '#e63946',
-                confirmButtonText: 'Try Again',
+                confirmButtonText: '{{ t("common.try_again") }}',
                 backdrop: 'rgba(26, 42, 108, 0.4)'
             });
         });
@@ -152,19 +181,57 @@
         e.preventDefault(); // Stop immediate form submission
         const form = this; 
         
-        // Get the role text to show in the alert
         const roleSelect = document.getElementById('userRole');
-        const roleText = roleSelect.options[roleSelect.selectedIndex].text;
+        const roleText = roleSelect.options[roleSelect.selectedIndex].text.trim();
+        const selectedModules = Array.from(form.querySelectorAll('input[name="modules"]:checked'))
+            .map((input) => {
+                const label = form.querySelector(`label[for="${input.id}"]`);
+                return label ? label.textContent.trim() : input.value;
+            });
+        const superAdminInput = document.getElementById('isSuperAdmin');
+        const superAdminText = superAdminInput && superAdminInput.checked
+            ? {{ t("common.enabled")|tojson }}
+            : {{ t("common.disabled")|tojson }};
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value;
+            return div.innerHTML;
+        }
+
+        const summaryHtml = `
+            <div class="text-start small">
+                <div class="mb-2">
+                    {{ t("admin.editing_profile_for") }} <strong class="text-info">@{{ user.username }}</strong>.
+                </div>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted pe-3">{{ t("admin.role") }}</th>
+                            <td class="fw-semibold">${escapeHtml(roleText)}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted pe-3">{{ t("admin.module_access") }}</th>
+                            <td class="fw-semibold">${selectedModules.length ? selectedModules.map(escapeHtml).join(', ') : {{ t("common.none")|tojson }}}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted pe-3">{{ t("admin.super_admin") }}</th>
+                            <td class="fw-semibold">${escapeHtml(superAdminText)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
 
         Swal.fire({
-            title: 'Confirm Changes?',
-            html: `You are updating the profile for <strong class="text-info">@{{ user.username }}</strong>.<br><br>Their access level will be set to: <strong>${roleText}</strong>.`,
+            title: '{{ t("admin.confirm_changes") }}',
+            html: summaryHtml,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#0dcaf0', 
             cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fas fa-check-circle"></i> Yes, save changes!',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: '<i class="fas fa-check-circle"></i> {{ t("admin.yes_save_changes") }}',
+            cancelButtonText: '{{ t("common.cancel") }}',
             backdrop: `rgba(26, 42, 108, 0.4)`
         }).then((result) => {
             if (result.isConfirmed) {

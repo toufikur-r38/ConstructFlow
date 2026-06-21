@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash
 import logging
 from app.extensions import db, login_manager, limiter
 from app.models import User
+from app.utils.i18n import translate as t
 
 auth_bp = Blueprint('auth', __name__, template_folder='templates')
 
@@ -32,7 +33,12 @@ def login():
         if user and user.is_active and check_password_hash(user.password, password):
             login_user(user)
             logging.info(f"Successful login: User '{username}'")
-            flash(f'Welcome back, {user.full_name}!', 'success')
+            flash(t('Welcome back, {name}!', name=user.full_name), 'success')
+            visible_modules = user.module_names()
+            if user.is_super_admin or len(visible_modules) > 1:
+                return redirect(url_for('module_hub'))
+            if 'construction' not in visible_modules:
+                return redirect(url_for('module_hub'))
             if user.role == 'admin':
                 return redirect(url_for('dashboard.admin_dashboard'))
             elif user.role == 'operator':
@@ -42,10 +48,10 @@ def login():
 
         elif user and not user.is_active:
             logging.warning(f"Failed login: Deactivated account '{username}' tried to access.")
-            flash("Your account has been deactivated. Contact the Admin.", "danger")
+            flash(t("Your account has been deactivated. Contact the Admin."), "danger")
         else:
             logging.warning(f"Failed login: Invalid credentials for username '{username}'.")
-            flash('Invalid username or password.', 'danger')
+            flash(t('Invalid username or password.'), 'danger')
     return render_template('login.html', username=request.form.get('username', '').strip())
 @auth_bp.route('/logout', methods=['POST'])
 @login_required
