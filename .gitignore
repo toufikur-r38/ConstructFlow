@@ -27,6 +27,12 @@ instance/
 logs/
 *.log
 
+# Database backups
+backups/
+*.dump
+*.sql
+*.sql.gz
+
 # Uploads / generated files
 uploads/
 
