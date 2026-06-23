@@ -115,6 +115,7 @@
                     <th>{{ t("audit.removed_by") }}</th>
                     <th>{{ t("audit.reason") }}</th>
                     <th>{{ t("audit.snapshot") }}</th>
+                    <th class="text-end">{{ t("archive.actions") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -122,7 +123,17 @@
                 {% set data = log.data_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.deleted_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold"><span class="project-name-glass">{{ log.project_name_snapshot or data.project_name }}</span></td>
+                    <td class="fw-bold">
+                        {% if log.project_id %}
+                        <a class="project-name-glass text-decoration-none"
+                           href="{{ url_for('costs.view_costs', project_filter=log.project_id, include_voided=1) }}"
+                           title="{{ t('project.open_cost_ledger') }} {{ log.project_name_snapshot or data.project_name }}">
+                            {{ log.project_name_snapshot or data.project_name }}
+                        </a>
+                        {% else %}
+                        <span class="project-name-glass">{{ log.project_name_snapshot or data.project_name }}</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-secondary">{{ log.remover.username }}</span></td>
                     <td class="small">{{ log.void_reason }}</td>
                     <td>
@@ -133,6 +144,15 @@
                                 <strong>{{ t("audit.amount") }}</strong> ৳{{ "{:,.2f}".format(data.total_amount|float) if data.total_amount else "0.00" }}
                             </div>
                         </div>
+                    </td>
+                    <td class="text-end">
+                        <button type="button"
+                                class="btn btn-sm btn-success shadow-sm fw-bold"
+                                data-restore-url="{{ url_for('construction_admin.restore_cost', id=log.cost_id) }}"
+                                data-item-name="{{ (data.category or data.cost_type or t('archive.entry_suffix')) }}"
+                                onclick="openAuditRestoreModal(this)">
+                            <i class="fas fa-undo me-1"></i> {{ t("archive.restore") }}
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -153,6 +173,7 @@
                     <th>{{ t("audit.removed_by") }}</th>
                     <th>{{ t("audit.reason") }}</th>
                     <th>{{ t("audit.costs_removed") }}</th>
+                    <th class="text-end">{{ t("archive.actions") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -160,10 +181,25 @@
                 {% set p_data = log.project_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.deleted_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold"><span class="project-name-glass">{{ p_data.project_name }}</span></td>
+                    <td class="fw-bold">
+                        <a class="project-name-glass text-decoration-none"
+                           href="{{ url_for('projects.view_projects', project_id=log.project_id, include_voided=1) }}"
+                           title="{{ t('project.ledger_title') }}: {{ p_data.project_name }}">
+                            {{ p_data.project_name }}
+                        </a>
+                    </td>
                     <td><span class="badge bg-secondary">{{ log.remover.username }}</span></td>
                     <td class="small">{{ log.void_reason }}</td>
                     <td class="text-center"><span class="badge rounded-pill bg-danger">{{ log.costs_voided_count or p_data.linked_costs_count }}</span></td>
+                    <td class="text-end">
+                        <button type="button"
+                                class="btn btn-sm btn-success shadow-sm fw-bold"
+                                data-restore-url="{{ url_for('construction_admin.restore_project', id=log.project_id) }}"
+                                data-item-name="{{ p_data.project_name }}"
+                                onclick="openAuditRestoreModal(this)">
+                            <i class="fas fa-undo me-1"></i> {{ t("archive.restore") }}
+                        </button>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -190,7 +226,17 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="small fw-bold"><span class="project-name-glass">{{ log.project_name_snapshot or after.project_name }}</span></td>
+                    <td class="small fw-bold">
+                        {% if log.project_id %}
+                        <a class="project-name-glass text-decoration-none"
+                           href="{{ url_for('costs.view_costs', project_filter=log.project_id) }}"
+                           title="{{ t('project.open_cost_ledger') }} {{ log.project_name_snapshot or after.project_name }}">
+                            {{ log.project_name_snapshot or after.project_name }}
+                        </a>
+                        {% else %}
+                        <span class="project-name-glass">{{ log.project_name_snapshot or after.project_name }}</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-secondary">{{ log.editor.username }}</span></td>
                     <td>
                         <button class="btn btn-sm btn-outline-info text-dark" data-bs-toggle="collapse" data-bs-target="#costEdit{{ log.id }}">{{ t("audit.compare_all_data") }}</button>
@@ -226,7 +272,17 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr>
                     <td class="small">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold"><span class="project-name-glass">{{ after.project_name or log.project_name_snapshot }}</span></td>
+                    <td class="fw-bold">
+                        {% if log.project_id %}
+                        <a class="project-name-glass text-decoration-none"
+                           href="{{ url_for('projects.view_projects', project_id=log.project_id) }}"
+                           title="{{ t('project.ledger_title') }}: {{ after.project_name or log.project_name_snapshot }}">
+                            {{ after.project_name or log.project_name_snapshot }}
+                        </a>
+                        {% else %}
+                        <span class="project-name-glass">{{ after.project_name or log.project_name_snapshot }}</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-secondary">{{ log.editor.username }}</span></td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#projEdit{{ log.id }}">{{ t("audit.compare") }}</button>
@@ -243,5 +299,59 @@
         </table>
     </div>
 </div>
+
+<div class="modal fade" id="auditRestoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i>{{ t("archive.restore_record") }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="auditRestoreForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="next" value="audit_log">
+                <div class="modal-body p-4 text-center">
+                    <i class="fas fa-exclamation-circle text-success fs-1 mb-3"></i>
+                    <p class="mb-1">{{ t("archive.about_to_restore") }}</p>
+                    <h5 class="fw-bold text-dark" id="auditRestoreItemName"></h5>
+                    <div class="mt-3 text-start">
+                        <label for="auditRestorePassword" class="form-label fw-bold">{{ t("archive.confirm_admin_password") }} <span class="text-danger">*</span></label>
+                        <input type="password"
+                               id="auditRestorePassword"
+                               name="confirm_password"
+                               class="form-control js-password-toggle"
+                               placeholder="{{ t("archive.enter_password_to_authorize") }}"
+                               required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light justify-content-center">
+                    <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal">{{ t("common.cancel") }}</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">{{ t("archive.confirm_restore") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let auditRestoreModalInstance = null;
+
+    function openAuditRestoreModal(button) {
+        const name = button.dataset.itemName;
+        const restoreUrl = button.dataset.restoreUrl;
+
+        document.getElementById('auditRestoreItemName').innerText = name;
+        document.getElementById('auditRestoreForm').action = restoreUrl;
+        document.getElementById('auditRestorePassword').value = '';
+
+        if (!auditRestoreModalInstance && window.bootstrap) {
+            auditRestoreModalInstance = new bootstrap.Modal(document.getElementById('auditRestoreModal'));
+        }
+
+        if (auditRestoreModalInstance) {
+            auditRestoreModalInstance.show();
+        }
+    }
+</script>
 
 {% endblock %}

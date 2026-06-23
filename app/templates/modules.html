@@ -437,10 +437,44 @@
         padding-top: 18px;
     }
 
+    .watchlist-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
     .watchlist-title {
         color: var(--text-main);
         font-weight: 800;
-        margin-bottom: 12px;
+        margin-bottom: 0;
+    }
+
+    .watchlist-sort {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border-soft);
+        border-radius: 999px;
+        background: var(--surface);
+        padding: 2px;
+        flex-shrink: 0;
+    }
+
+    .watchlist-sort button {
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 4px 8px;
+        line-height: 1;
+    }
+
+    .watchlist-sort button.active {
+        background: color-mix(in srgb, var(--navy) 10%, var(--surface));
+        color: var(--navy);
     }
 
     .watchlist-row {
@@ -464,6 +498,21 @@
         text-overflow: ellipsis;
     }
 
+    .watchlist-name-link {
+        color: var(--text-main);
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-color: color-mix(in srgb, var(--accent) 42%, transparent);
+        text-underline-offset: 3px;
+        transition: color 0.2s ease, text-decoration-color 0.2s ease;
+    }
+
+    .watchlist-name-link:hover,
+    .watchlist-name-link:focus {
+        color: var(--accent);
+        text-decoration-color: var(--accent);
+    }
+
     .watchlist-meta {
         color: var(--text-muted);
         font-size: 12px;
@@ -478,6 +527,26 @@
         padding: 6px 10px;
         font-size: 13px;
         white-space: nowrap;
+    }
+
+    .watchlist-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 10px;
+    }
+
+    .watchlist-open-all {
+        color: var(--navy);
+        font-size: 12px;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .watchlist-open-all:hover,
+    .watchlist-open-all:focus {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 3px;
     }
 
     .module-empty {
@@ -706,11 +775,26 @@
                     </div>
 
                     <div class="module-watchlist">
-                        <div class="watchlist-title">{{ t("modules.project_watchlist") }}</div>
+                        <div class="watchlist-head">
+                            <div class="watchlist-title">{{ t("modules.project_watchlist") }}</div>
+                            <div class="watchlist-sort" aria-label="Project watchlist sort">
+                                <button type="button" class="active js-watchlist-sort" data-sort="budget" title="{{ t('dashboard.budget_used') }}">
+                                    <i class="fas fa-chart-line"></i>
+                                </button>
+                                <button type="button" class="js-watchlist-sort" data-sort="name" title="{{ t('dashboard.project_name') }}">
+                                    <i class="fas fa-sort-alpha-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="moduleWatchlistRows">
                         {% for project in construction_overview.top_projects %}
-                            <div class="watchlist-row">
+                            <div class="watchlist-row" data-budget="{{ project.percent }}" data-name="{{ project.name|lower }}">
                                 <div>
-                                    <div class="watchlist-name">{{ project.name }}</div>
+                                    <a class="watchlist-name watchlist-name-link d-block"
+                                       href="{{ url_for('projects.view_projects', project_id=project.id) }}"
+                                       title="{{ t('project.open_cost_ledger') }} {{ project.name }}">
+                                        {{ project.name }}
+                                    </a>
                                     <div class="watchlist-meta">
                                         {{ t("dashboard.budget_left") }}:
                                         {{ t("common.currency_bdt") }} {{ "{:,.0f}".format(project.left) }}
@@ -721,6 +805,12 @@
                         {% else %}
                             <div class="module-empty">{{ t("modules.no_running_projects") }}</div>
                         {% endfor %}
+                        </div>
+                        <div class="watchlist-footer">
+                            <a class="watchlist-open-all" href="{{ url_for('projects.view_projects', status_filter='Running') }}">
+                                {{ t("dashboard.view_all_project_details") }}
+                            </a>
+                        </div>
                     </div>
                     {% else %}
                     <div class="module-empty">{{ t("modules.overview_unavailable") }}</div>
@@ -731,5 +821,30 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+    document.querySelectorAll('.js-watchlist-sort').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const target = document.getElementById('moduleWatchlistRows');
+            if (!target) {
+                return;
+            }
+
+            const rows = Array.from(target.querySelectorAll('[data-budget][data-name]'));
+            rows.sort(function(a, b) {
+                if (button.dataset.sort === 'name') {
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                }
+                return Number(b.dataset.budget || 0) - Number(a.dataset.budget || 0)
+                    || a.dataset.name.localeCompare(b.dataset.name);
+            });
+            rows.forEach(row => target.appendChild(row));
+
+            document.querySelectorAll('.js-watchlist-sort').forEach(function(peer) {
+                peer.classList.toggle('active', peer === button);
+            });
+        });
+    });
+</script>
 
 {% endblock %}

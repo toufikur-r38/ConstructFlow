@@ -1,6 +1,9 @@
 {% extends "layout.html" %}
 {% block title %}{{ t("project.ledger_title") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
+<link href="{{ url_for('static', filename='vendor/select2/css/select2.min.css') }}" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/select2/css/select2-bootstrap-5-theme.min.css') }}" />
+
 
 <style>
     :root {
@@ -208,6 +211,9 @@
         <div>
             <h3 class="fw-bold mb-1" style="color: var(--navy);">{{ t("project.ledger_title") }}</h3>
             <p class="text-muted small mb-0">{{ t("project.ledger_subtitle") }}</p>
+            {% if include_voided %}
+            <span class="badge bg-danger bg-opacity-10 text-danger mt-2">{{ t("project.voided") }} {{ t("project.ledger_title") }}</span>
+            {% endif %}
         </div>
             <a href="{{ url_for('projects.add_project') }}" class="btn btn-dark fw-bold shadow-sm">
             <i class="fas fa-plus me-2"></i> {{ t("project.register_project") }}
@@ -218,6 +224,10 @@
         <form method="GET" action="{{ url_for('projects.view_projects') }}" id="projectFilterForm">
             <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
             <input type="hidden" name="focus_search" id="focusSearch" value="{{ request.args.get('focus_search', '') }}">
+            {% if include_voided %}
+            <input type="hidden" name="project_id" value="{{ request.args.get('project_id', '') }}">
+            <input type="hidden" name="include_voided" value="1">
+            {% endif %}
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">{{ t("project.search") }}</label>
@@ -226,6 +236,20 @@
                     <input type="text" id="generalSearch" name="search" class="form-control form-control-custom border-start-0" value="{{ request.args.get('search', '') }}" placeholder="{{ t('project.project_firm_tender_placeholder') }}">
                 </div>
             </div>
+
+            {% if not include_voided %}
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted text-uppercase">{{ t("project.project_name") }}</label>
+                <select id="projectNameFilter" name="project_id" class="form-select form-control-custom project-search-select" onchange="this.form.submit()">
+                    <option value="">{{ t("cost.all_projects") }}</option>
+                    {% for project in project_choices %}
+                        <option value="{{ project.id }}" {% if request.args.get('project_id') == project.id|string %}selected{% endif %}>
+                            {{ project.project_name }}{% if project.status != 'Running' %} ({{ project.status }}){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
 
             <div class="col-md-3">
                 <label class="form-label small fw-bold text-muted text-uppercase">{{ t("project.sector") }}</label>
@@ -255,9 +279,24 @@
             </div>
         </div>
         </form>
+        {% if not include_voided %}
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <a class="btn btn-sm rounded-pill fw-bold {{ 'btn-dark' if request.args.get('status_filter', 'all') == 'all' else 'btn-outline-secondary' }}"
+               href="{{ url_for('projects.view_projects', search=request.args.get('search', ''), project_id=request.args.get('project_id', ''), sector_filter=request.args.get('sector_filter', 'all'), status_filter='all', per_page=pagination.per_page if pagination else 25) }}">
+                {{ t("project.all_statuses") }}
+            </a>
+            {% for status in statuses %}
+            <a class="btn btn-sm rounded-pill fw-bold {{ 'btn-dark' if request.args.get('status_filter') == status else 'btn-outline-secondary' }}"
+               href="{{ url_for('projects.view_projects', search=request.args.get('search', ''), project_id=request.args.get('project_id', ''), sector_filter=request.args.get('sector_filter', 'all'), status_filter=status, per_page=pagination.per_page if pagination else 25) }}">
+                {{ status }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
     <div class="table-responsive">
+        {% set can_manage_projects = (current_user.role in ['admin', 'operator'] or current_user.is_super_admin) and not include_voided %}
         <table class="table custom-table project-ledger-table" id="projectTable">
             <thead>
                 <tr>
@@ -267,7 +306,7 @@
                     <th>{{ t("project.address") }}</th>
                     <th>{{ t("project.budget_monitor") }}</th>
                     <th>{{ t("common.status") }}</th>
-                    {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
+                    {% if can_manage_projects %}
                     <th class="text-end">{{ t("common.actions") }}</th>
                     {% endif %}
                 </tr>
@@ -277,7 +316,7 @@
                 {% set finance = project_financials.get(p.id) %}
                 <tr class="project-row {% if p.is_void %}row-voided{% endif %}"
                     data-sector="{{ p.sector }}"
-                    data-view-url="{{ url_for('costs.view_costs', project_filter=p.id) }}"
+                    data-view-url="{{ url_for('costs.view_costs', project_filter=p.id, include_voided=1) if p.is_void else url_for('costs.view_costs', project_filter=p.id) }}"
                     tabindex="0"
                     title="{{ t('project.open_cost_ledger') }} {{ p.project_name }}">
                     <td>
@@ -406,11 +445,10 @@
                         {% endif %}
                     </td>
 
-                    {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
+                    {% if can_manage_projects and not p.is_void %}
                     <td class="text-end">
-                        {% if not p.is_void %}
                         <div class="btn-group shadow-sm bg-white rounded">
-                            <a href="{{ url_for('construction_admin.edit_project', project_id=p.id) }}" class="btn btn-sm btn-outline-light border-0 text-warning" title="{{ t('common.edit') }}">
+                            <a href="{{ url_for('construction_admin.edit_project', project_id=p.id, next=request.full_path) }}" class="btn btn-sm btn-outline-light border-0 text-warning" title="{{ t('common.edit') }}">
                                 <i class="fas fa-edit"></i>
                             </a>
                             <button type="button" 
@@ -422,15 +460,12 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
-                        {% elif p.is_void %}
-                            <small class="text-muted italic">{{ t("project.archived") }}</small>
-                        {% endif %}
                     </td>
                     {% endif %}
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="{% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}7{% else %}6{% endif %}" class="text-center py-5 text-muted">{{ t("project.no_projects_found") }}</td>
+                    <td colspan="{% if can_manage_projects %}7{% else %}6{% endif %}" class="text-center py-5 text-muted">{{ t("project.no_projects_found") }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -471,7 +506,17 @@
     </div>
 </div>
 
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/select2/js/select2.min.js') }}"></script>
 <script>
+    if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+        window.jQuery('.project-search-select').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            minimumResultsForSearch: 0
+        });
+    }
+
     document.querySelectorAll('.progress-bar[data-progress-width]').forEach(function(bar) {
         const rawWidth = Number.parseFloat(bar.dataset.progressWidth);
         const safeWidth = Number.isFinite(rawWidth) ? Math.min(100, Math.max(0, rawWidth)) : 0;

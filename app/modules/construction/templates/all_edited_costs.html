@@ -77,7 +77,17 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr class="archive-row" data-editor="{{ log.editor.username | lower }}">
                     <td class="small fw-bold text-muted">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold text-dark"><span class="proj-name project-name-glass">{{ log.project_name_snapshot or after.project_name }}</span></td>
+                    <td class="fw-bold text-dark">
+                        {% if log.project_id %}
+                        <a class="proj-name project-name-glass text-decoration-none"
+                           href="{{ url_for('costs.view_costs', project_filter=log.project_id) }}"
+                           title="{{ t('project.open_cost_ledger') }} {{ log.project_name_snapshot or after.project_name }}">
+                            {{ log.project_name_snapshot or after.project_name }}
+                        </a>
+                        {% else %}
+                        <span class="proj-name project-name-glass">{{ log.project_name_snapshot or after.project_name }}</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-light text-dark border">{{ after.cost_type or after.category }}</span></td>
                     <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>{{ log.editor.username }}</span></td>
                     <td class="text-end">

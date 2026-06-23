@@ -76,7 +76,17 @@
                 {% set after = log.after_snapshot | fromjson %}
                 <tr class="archive-row" data-editor="{{ log.editor.username | lower }}">
                     <td class="small fw-bold text-muted">{{ log.changed_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="fw-bold text-dark"><span class="proj-name project-name-glass">{{ after.project_name or log.project_name_snapshot }}</span></td>
+                    <td class="fw-bold text-dark">
+                        {% if log.project_id %}
+                        <a class="proj-name project-name-glass text-decoration-none"
+                           href="{{ url_for('projects.view_projects', project_id=log.project_id) }}"
+                           title="{{ t('project.ledger_title') }}: {{ after.project_name or log.project_name_snapshot }}">
+                            {{ after.project_name or log.project_name_snapshot }}
+                        </a>
+                        {% else %}
+                        <span class="proj-name project-name-glass">{{ after.project_name or log.project_name_snapshot }}</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-secondary"><i class="fas fa-user me-1"></i>{{ log.editor.username }}</span></td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-primary shadow-sm fw-bold" data-bs-toggle="collapse" data-bs-target="#projEdit{{ log.id }}">

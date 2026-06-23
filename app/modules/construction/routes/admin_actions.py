@@ -7,12 +7,13 @@ from app.extensions import db, limiter
 from app.models import DeletedLog, Project, CostEntry, EditLog, ProjectEditLog, ProjectDeletedLog, DropdownOption
 from werkzeug.security import check_password_hash
 import json
-from decimal import Decimal, InvalidOperation
-from app.extensions import cache
+from decimal import InvalidOperation
 from app.utils.decorators import admin_required, module_access_required, write_access_required
 from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import DEFAULT_LOG_PER_PAGE, get_pagination_args
+from app.modules.construction.utils.dashboard_cache import invalidate_dashboard_math
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, COST_TYPE, get_dropdown_options
+from app.modules.construction.utils.money import calculate_total, to_money, ZERO
 construction_admin_bp = Blueprint('construction_admin', __name__, template_folder='../templates')
 
 
@@ -31,22 +32,53 @@ def _render_edit_project(project, auth_error=False, form_data=None):
         auth_error=auth_error,
         form_data=form_data,
         sectors=get_dropdown_options(PROJECT_SECTOR),
+        return_url=_safe_local_next(url_for('projects.view_projects')),
     )
+
+
+def _edit_cost_project_choices(entry):
+    projects = (
+        Project.query
+        .filter(Project.is_void == False, Project.status == 'Running')
+        .order_by(Project.project_name.asc())
+        .all()
+    )
+    if entry.project and not entry.project.is_void and entry.project not in projects:
+        projects.append(entry.project)
+    return projects
+
+
+def _safe_local_next(default_url):
+    next_url = (request.form.get('next') or request.args.get('next') or '').strip()
+    if next_url.startswith('/') and not next_url.startswith('//'):
+        return next_url
+    return default_url
 
 
 def _render_edit_cost(entry, projects=None, auth_error=False, form_data=None):
     return render_template(
         'edit_cost.html',
         entry=entry,
-        projects=projects if projects is not None else Project.query.filter_by(is_void=False).all(),
+        projects=projects if projects is not None else _edit_cost_project_choices(entry),
         cost_types=get_dropdown_options(COST_TYPE),
         auth_error=auth_error,
         form_data=form_data,
+        return_url=_safe_local_next(url_for('costs.view_costs')),
     )
 
 
 def _password_matches_current_user(field_name='confirm_password'):
     return check_password_hash(current_user.password, request.form.get(field_name, ''))
+
+
+def _restore_redirect(default_endpoint):
+    next_page = request.form.get('next', '').strip()
+    allowed = {
+        'audit_log': 'construction_admin.audit_log',
+        'all_removed_projects': 'construction_admin.all_removed_projects',
+        'all_removed_costs': 'construction_admin.all_removed_costs',
+    }
+    return redirect(url_for(allowed.get(next_page, default_endpoint)))
 
 
 def _project_voided_remark(remark):
@@ -129,7 +161,7 @@ def void_project(project_id):
         try:
             db.session.commit()
             logging.info(f"ADMIN ACTION: '{current_user.username}' voided Project ID {project.id}. Reason: {void_reason}")
-            cache.delete('dashboard_math_data')
+            invalidate_dashboard_math()
             flash(f"Project '{project.project_name}' and {void_count} linked cost entries have been successfully voided.", "success")
         except Exception as e:
             logging.error(f"ERROR VOIDING PROJECT ID {project_id}: {str(e)}")
@@ -151,7 +183,7 @@ def restore_project(id):
 
     if not _password_matches_current_user():
         flash("Authentication failed. Incorrect password. No changes were made.", "danger")
-        return redirect(url_for('construction_admin.all_removed_projects'))
+        return _restore_redirect('construction_admin.all_removed_projects')
 
     deleted_log = (
         ProjectDeletedLog.query
@@ -193,13 +225,13 @@ def restore_project(id):
         db.session.delete(deleted_log)
         
     db.session.commit()
-    cache.delete('dashboard_math_data')
+    invalidate_dashboard_math()
     logging.info(
         f"ADMIN ACTION: '{current_user.username}' restored Project ID {project.id} "
         f"('{project.project_name}') with {restored_costs_count} linked costs."
     )
     flash(f"Project '{project.project_name}' and {restored_costs_count} linked costs have been successfully restored.", "success")
-    return redirect(url_for('construction_admin.all_removed_projects'))
+    return _restore_redirect('construction_admin.all_removed_projects')
 
 
 VALID_STATUSES = ['Running', 'Completed', 'On Hold']
@@ -319,10 +351,10 @@ def edit_project(project_id):
         if status != 'Completed':
             parsed_completion = None
  
-        parsed_price = Decimal('0')
+        parsed_price = ZERO
         if price_str:
             try:
-                parsed_price = Decimal(price_str)
+                parsed_price = to_money(price_str)
                 if parsed_price < 0:
                     raise ValueError("Price cannot be negative.")
             except (InvalidOperation, ValueError):
@@ -340,7 +372,7 @@ def edit_project(project_id):
             and (project.additional_details or '') == additional_details
             and project.status == status
             and project.completion_date == parsed_completion
-            and (project.contract_price or Decimal('0')) == parsed_price
+            and to_money(project.contract_price) == parsed_price
         ):
             flash("No changes detected. Nothing was updated.", "info")
             return _render_edit_project(project, form_data=request.form)
@@ -377,7 +409,7 @@ def edit_project(project_id):
  
         try:
             db.session.commit()
-            cache.delete('dashboard_math_data')
+            invalidate_dashboard_math()
         except Exception as e:
             db.session.rollback()
             logging.error(
@@ -395,7 +427,7 @@ def edit_project(project_id):
             f"Project '{project.project_name}' updated and audit log saved.",
             "success"
         )
-        return redirect(url_for('projects.view_projects'))
+        return redirect(_safe_local_next(url_for('projects.view_projects', project_id=project.id)))
  
     return _render_edit_project(project)
  
@@ -447,7 +479,7 @@ def void_cost(cost_id):
     entry.is_void = True
     try:
         db.session.commit()
-        cache.delete('dashboard_math_data')
+        invalidate_dashboard_math()
         logging.info(
             f"ADMIN ACTION: '{current_user.username}' voided Cost ID {entry.id} "
             f"(Project: '{entry.project.project_name if entry.project else 'Unknown'}', "
@@ -469,14 +501,14 @@ def restore_cost(id):
 
     if not _password_matches_current_user():
         flash("Authentication failed. Incorrect password. No changes were made.", "danger")
-        return redirect(url_for('construction_admin.all_removed_costs'))
+        return _restore_redirect('construction_admin.all_removed_costs')
 
     if cost.project and cost.project.is_void:
         flash(
             f"First restore the project '{cost.project.project_name}', then restore this cost.",
             "warning"
         )
-        return redirect(url_for('construction_admin.all_removed_costs'))
+        return _restore_redirect('construction_admin.all_removed_costs')
 
     cost.is_void = False
     
@@ -486,14 +518,14 @@ def restore_cost(id):
     if deleted_log:
         db.session.delete(deleted_log)
     db.session.commit()
-    cache.delete('dashboard_math_data')
+    invalidate_dashboard_math()
     logging.info(
         f"ADMIN ACTION: '{current_user.username}' restored Cost ID {cost.id} "
         f"(Project: '{cost.project.project_name if cost.project else 'Unknown'}', "
         f"Type: '{cost.cost_type}', Total: {cost.total_amount})."
     )
     flash("Cost entry has been successfully restored.", "success")
-    return redirect(url_for('construction_admin.all_removed_costs'))
+    return _restore_redirect('construction_admin.all_removed_costs')
 @construction_admin_bp.route('/edit-cost/<int:cost_id>', methods=['GET', 'POST'])
 @login_required
 @module_access_required('construction')
@@ -538,6 +570,10 @@ def edit_cost(cost_id):
         if target_project.is_void:
             flash("Costs cannot be moved to a voided project. Restore the project first.", "danger")
             return _render_edit_cost(entry, form_data=request.form)
+
+        if target_project.status != 'Running' and target_project.id != entry.project_id:
+            flash("Costs can only be moved to running projects.", "danger")
+            return _render_edit_cost(entry, form_data=request.form)
  
         # 2c. Cost type — required
         if not cost_type:
@@ -558,26 +594,26 @@ def edit_cost(cost_id):
             return _render_edit_cost(entry, form_data=request.form)
  
         try:
-            parsed_qty = Decimal(qty_str) if qty_str else Decimal('0')
+            parsed_qty = to_money(qty_str)
         except InvalidOperation:
             flash("Invalid quantity. Please enter a valid number.", "danger")
             return _render_edit_cost(entry, form_data=request.form)
  
         try:
-            parsed_rate = Decimal(rate_str) if rate_str else Decimal('0')
+            parsed_rate = to_money(rate_str)
         except InvalidOperation:
             flash("Invalid unit rate. Please enter a valid number.", "danger")
             return _render_edit_cost(entry, form_data=request.form)
  
-        parsed_total = parsed_qty * parsed_rate
+        parsed_total = calculate_total(parsed_qty, parsed_rate)
 
         if (
             entry.date == parsed_date
             and entry.project_id == parsed_project_id
             and entry.cost_type == cost_type
-            and (entry.quantity or Decimal('0')) == parsed_qty
-            and (entry.unit_rate or Decimal('0')) == parsed_rate
-            and (entry.total_amount or Decimal('0')) == parsed_total
+            and to_money(entry.quantity) == parsed_qty
+            and to_money(entry.unit_rate) == parsed_rate
+            and to_money(entry.total_amount) == parsed_total
             and (entry.remarks or '') == remarks
         ):
             flash("No changes detected. Nothing was updated.", "info")
@@ -628,7 +664,7 @@ def edit_cost(cost_id):
  
         try:
             db.session.commit()
-            cache.delete('dashboard_math_data')
+            invalidate_dashboard_math()
         except Exception as e:
             db.session.rollback()
             logging.error(
@@ -643,7 +679,7 @@ def edit_cost(cost_id):
             f"(Project: '{original_project_name}', Total: {parsed_total})"
         )
         flash("Changes saved and audit log updated.", "success")
-        return redirect(url_for('costs.view_costs'))
+        return redirect(_safe_local_next(url_for('costs.view_costs', project_filter=entry.project_id)))
  
     # ── GET ───────────────────────────────────────────────────────────────────
     return _render_edit_cost(entry)

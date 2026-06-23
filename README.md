@@ -1,4 +1,4 @@
-# ConstructFlow
+﻿# ConstructFlow
 
 ConstructFlow is a public showcase version of a Flask-based construction project ledger and cost management system. It supports project registries, expenditure tracking, filtered reports, audit history, managed dropdowns, user roles, module access, and English/Bangla UI translations.
 
@@ -14,7 +14,7 @@ This showcase repository does not include production secrets, private database f
 - Cost entry workflow for running projects and late-cost entry for completed projects.
 - Edit, void, and restore workflows with password confirmation and audit snapshots.
 - Managed project sector and cost type dropdowns.
-- Financial dashboards and filtered PDF cost reports.
+- Financial dashboards and filtered PDF/Excel cost reports, including ZIP packaging for very large exports.
 - Separate app, access, security, audit, and error logging setup.
 - PostgreSQL-ready configuration with Redis support for cache/rate-limit storage.
 - Manual PostgreSQL backup script.
@@ -39,7 +39,7 @@ app/
       routes/                  Dashboard, project, cost, and admin/audit routes
       services/                Dashboard/module overview calculations
       templates/               Construction module UI
-      utils/                   Dropdown seeding and PDF generation
+      utils/                   Dropdown seeding, dashboard caching, money helpers, and report generation
 migrations/                    Flask-Migrate/Alembic database migrations
 scripts/                       Utility scripts, including database backup
 main.py                        Application entry point
@@ -58,7 +58,7 @@ requirements.txt              Python runtime dependencies
 - `/construction/add-project` - add projects
 - `/construction/view-projects` - project ledger
 - `/construction/add-cost` - cost entry
-- `/construction/view-costs` - reports and PDF export
+- `/construction/view-costs` - reports and PDF/Excel export
 - `/construction/dropdown-options` - sector/cost type options
 - `/construction/audit-log` - audit hub
 - `/register` - add/manage users
@@ -154,3 +154,4 @@ This showcase excludes private runtime files. Do not commit `.env`, SQLite datab
 ## License
 
 MIT License. See `LICENSE`.
+

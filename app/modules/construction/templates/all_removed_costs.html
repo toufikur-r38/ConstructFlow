@@ -66,14 +66,24 @@
                 {% for c in costs %}
                 <tr class="archive-row" data-category="{{ c.cost_type }}">
                     <td class="small fw-bold text-muted">{{ c.date }}</td>
-                    <td class="fw-bold text-dark"><span class="proj-name project-name-glass">{{ c.project.project_name if c.project else t("archive.unknown") }}</span></td>
+                    <td class="fw-bold text-dark">
+                        {% if c.project_id %}
+                        <a class="proj-name project-name-glass text-decoration-none"
+                           href="{{ url_for('costs.view_costs', project_filter=c.project_id, include_voided=1) }}"
+                           title="{{ t('project.open_cost_ledger') }} {{ c.project.project_name if c.project else t('archive.unknown') }}">
+                            {{ c.project.project_name if c.project else t("archive.unknown") }}
+                        </a>
+                        {% else %}
+                        <span class="proj-name project-name-glass">{{ c.project.project_name if c.project else t("archive.unknown") }}</span>
+                        {% endif %}
+                    </td>
                     <td><span class="badge bg-light text-dark border">{{ c.cost_type }}</span></td>
                     <td class="fw-bold text-danger">৳ {{ "{:,.2f}".format(c.total_amount) }}</td>
                     <td class="small text-muted" style="max-width: 200px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
                         {{ c.remarks }}
                     </td>
                     <td class="text-end">
-                        <button type="button" 
+                        <button type="button"
                                 class="btn btn-sm btn-success shadow-sm fw-bold"
                                 data-restore-url="{{ url_for('construction_admin.restore_cost', id=c.id) }}"
                                 data-item-name="{{ c.cost_type }} {{ t("archive.entry_suffix") }}"

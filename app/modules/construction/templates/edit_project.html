@@ -5,8 +5,8 @@
 {% set selected_sector = form.get('sector', project.sector) %}
 {% set selected_status = form.get('status', project.status) %}
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<link href="{{ url_for('static', filename='vendor/select2/css/select2.min.css') }}" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/select2/css/select2-bootstrap-5-theme.min.css') }}" />
 
 <div class="container-fluid mt-4">
     <div class="row justify-content-center mb-5">
@@ -20,7 +20,7 @@
                             </div>
                             <h4 class="fw-bold mb-0" style="color: var(--navy);">{{ t("edit_project.title") }}</h4>
                         </div>
-                        <a href="{{ url_for('projects.view_projects') }}" class="btn btn-sm btn-outline-secondary shadow-sm">
+                        <a href="{{ return_url }}" class="btn btn-sm btn-outline-secondary shadow-sm">
                             <i class="fas fa-arrow-left me-1"></i> {{ t("edit_project.back_to_projects") }}
                         </a>
                     </div>
@@ -37,6 +37,7 @@
 
                     <form id="editProjectForm" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="next" value="{{ return_url }}"/>
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold text-secondary">{{ t("edit_project.project_id") }}</label>
@@ -80,7 +81,7 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label class="form-label fw-bold">{{ t("edit_project.contract_price") }}</label>
-                                <input type="number" step="0.01" name="contract_price" class="form-control fw-bold text-success" value="{{ form.get('contract_price', project.contract_price or '') }}">
+                                <input type="number" step="0.01" min="0" name="contract_price" class="form-control fw-bold text-success" value="{{ form.get('contract_price', project.contract_price or '') }}">
                             </div>
                             
                             <div class="col-md-3 mb-3">
@@ -141,8 +142,8 @@
 
 <div id="authErrorTracker" data-has-error="{{ 'true' if auth_error else 'false' }}" style="display: none;"></div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/select2/js/select2.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -192,10 +193,17 @@
         e.preventDefault(); 
         const form = this; 
         const projectName = document.querySelector('input[name="project_name"]').value;
+        const confirmHtmlTemplate = `{{ t("edit_project.confirm_updates_html")|safe }}`;
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value;
+            return div.innerHTML;
+        }
 
         Swal.fire({
             title: '{{ t("edit_project.confirm_updates") }}',
-            html: `{{ t("edit_project.confirm_updates_html")|replace("{project}", "${projectName}") }}`,
+            html: confirmHtmlTemplate.replace('{project}', escapeHtml(projectName)),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ffc107',

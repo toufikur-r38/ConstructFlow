@@ -1,0 +1,325 @@
+{% extends "layout.html" %}
+{% set is_admin_dashboard = dashboard_mode == 'admin' %}
+{% set is_operator_dashboard = dashboard_mode == 'operator' %}
+{% set is_viewer_dashboard = dashboard_mode == 'viewer' %}
+{% set dashboard_title = t("dashboard.admin_title") if is_admin_dashboard else t("dashboard.operator_title") if is_operator_dashboard else t("dashboard.viewer_title") %}
+{% block title %}{{ dashboard_title }} - {{ t("common.app_name") }}{% endblock %}
+{% block content %}
+
+<style>
+    .action-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+
+    .dashboard-project-table-wrap {
+        max-height: 560px;
+        overflow: auto;
+    }
+
+    .dashboard-project-table-wrap thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--bs-light);
+    }
+
+    .icon-box {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+    <h3 class="fw-bold mb-0" style="color: var(--navy);">{{ dashboard_title }}</h3>
+    <span class="text-muted small">
+        <i class="fas {{ 'fa-eye' if is_viewer_dashboard else 'fa-calendar-alt' }} me-1"></i>
+        {{ t("dashboard.live_financial_status") }}
+    </span>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm border-0 border-start border-primary border-4 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">{{ t("dashboard.running_projects") }}</p>
+                        <h3 class="mb-0 fw-bold text-dark">{{ running_count }}</h3>
+                    </div>
+                    <div class="icon-box bg-primary bg-opacity-10 rounded-circle">
+                        <i class="fas fa-hard-hat text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm border-0 border-start border-info border-4 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">{{ t("dashboard.expenses_this_month") }}</p>
+                        <h3 class="mb-0 fw-bold text-dark">{{ t("common.currency_bdt") }} {{ "{:,.2f}".format(spent_this_month) }}</h3>
+                    </div>
+                    <div class="icon-box bg-info bg-opacity-10 rounded-circle">
+                        <i class="fas fa-calendar-alt text-info fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm border-0 border-start border-warning border-4 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">{{ t("dashboard.expenses_today") }}</p>
+                        <h3 class="mb-0 fw-bold text-dark">{{ t("common.currency_bdt") }} {{ "{:,.2f}".format(spent_today) }}</h3>
+                    </div>
+                    <div class="icon-box bg-warning bg-opacity-10 rounded-circle">
+                        <i class="fas fa-bolt text-warning fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm border-0 border-start {% if projects_in_danger > 0 %}border-danger{% else %}border-success{% endif %} border-4 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted mb-1 small fw-bold text-uppercase" style="letter-spacing: 0.5px;">{{ t("dashboard.budget_alerts") }}</p>
+                        <h3 class="mb-0 fw-bold {% if projects_in_danger > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ projects_in_danger }}
+                        </h3>
+                    </div>
+                    <div class="icon-box {% if projects_in_danger > 0 %}bg-danger{% else %}bg-success{% endif %} bg-opacity-10 rounded-circle">
+                        <i class="fas fa-exclamation-triangle {% if projects_in_danger > 0 %}text-danger{% else %}text-success{% endif %} fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="fw-bold mb-3 text-secondary">
+    {% if is_admin_dashboard %}
+        {{ t("dashboard.admin_actions") }}
+    {% elif is_operator_dashboard %}
+        {{ t("dashboard.quick_actions") }}
+    {% else %}
+        {{ t("dashboard.available_information") }}
+    {% endif %}
+</h5>
+
+<div class="row g-4">
+    {% if is_admin_dashboard or is_operator_dashboard %}
+    <div class="{% if is_admin_dashboard %}col-md-4{% else %}col-md-3{% endif %}">
+        <a href="{{ url_for('projects.add_project') }}" class="card action-card shadow-sm border-0 text-center py-4 h-100">
+            <div class="card-body">
+                <i class="fas fa-folder-plus fs-1 text-warning mb-3"></i>
+                <h6 class="fw-bold text-dark mb-1">{{ t("dashboard.add_new_project") }}</h6>
+                <p class="text-muted small mb-0">{{ t("dashboard.register_new_contract") }}</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="{% if is_viewer_dashboard %}col-md-6{% elif is_admin_dashboard %}col-md-4{% else %}col-md-3{% endif %}">
+        <a href="{{ url_for('projects.view_projects') }}" class="card action-card shadow-sm border-0 text-center {% if is_viewer_dashboard %}py-5{% else %}py-4{% endif %} h-100">
+            <div class="card-body">
+                <i class="fas fa-list-alt fs-1 text-primary mb-3"></i>
+                <h6 class="fw-bold text-dark mb-1">{{ t("common.project_ledger") }}</h6>
+                <p class="text-muted small mb-0">
+                    {% if is_viewer_dashboard %}
+                        {{ t("dashboard.view_all_project_status_details") }}
+                    {% else %}
+                        {{ t("dashboard.view_all_project_details") }}
+                    {% endif %}
+                </p>
+            </div>
+        </a>
+    </div>
+
+    {% if is_admin_dashboard or is_operator_dashboard %}
+    <div class="{% if is_admin_dashboard %}col-md-4{% else %}col-md-3{% endif %}">
+        <a href="{{ url_for('costs.add_cost') }}" class="card action-card shadow-sm border-0 text-center py-4 h-100">
+            <div class="card-body">
+                <i class="fas fa-file-invoice-dollar fs-1 mb-3" style="color: var(--safety-red);"></i>
+                <h6 class="fw-bold text-dark mb-1 mt-3">{{ t("dashboard.daily_cost_entry") }}</h6>
+                <p class="text-muted small mb-0">{{ t("dashboard.log_materials_expenses") }}</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="{% if is_viewer_dashboard %}col-md-6{% elif is_admin_dashboard %}col-md-4{% else %}col-md-3{% endif %}">
+        <a href="{{ url_for('costs.view_costs') }}" class="card action-card shadow-sm border-0 text-center {% if is_viewer_dashboard %}py-5{% else %}py-4{% endif %} h-100">
+            <div class="card-body">
+                <i class="fas fa-chart-pie fs-1 text-success mb-3"></i>
+                <h6 class="fw-bold text-dark mb-1">{{ t("dashboard.financial_reports") }}</h6>
+                <p class="text-muted small mb-0">
+                    {% if is_viewer_dashboard %}
+                        {{ t("dashboard.view_categorized_project_spending") }}
+                    {% else %}
+                        {{ t("dashboard.view_categorized_spending") }}
+                    {% endif %}
+                </p>
+            </div>
+        </a>
+    </div>
+
+    {% if is_admin_dashboard %}
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.register') }}" class="card action-card shadow-sm border-0 text-center py-4 h-100">
+            <div class="card-body">
+                <i class="fas fa-user-plus fs-1 text-dark mb-3"></i>
+                <h6 class="fw-bold text-dark mb-1">{{ t("dashboard.add_authorized_user") }}</h6>
+                <p class="text-muted small mb-0">{{ t("dashboard.create_team_login") }}</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4">
+        <a href="{{ url_for('construction_admin.audit_log') }}" class="card action-card shadow-sm border-0 text-center py-4 h-100 text-decoration-none">
+            <div class="card-body">
+                <i class="fas fa-shield-alt fs-1 text-danger mb-3"></i>
+                <h6 class="fw-bold text-dark mb-1">{{ t("common.audit_log") }}</h6>
+                <p class="text-muted small mb-0">{{ t("dashboard.view_edits_voids") }}</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+
+    {% if is_admin_dashboard or is_operator_dashboard %}
+    <div class="{% if is_admin_dashboard %}col-md-4{% else %}col-md-3{% endif %}">
+        <a href="{{ url_for('construction_admin.dropdown_options') }}" class="card action-card shadow-sm border-0 text-center py-4 h-100">
+            <div class="card-body">
+                <i class="fas fa-list-check fs-1 text-info mb-3"></i>
+                <h6 class="fw-bold text-dark mb-1">{{ t("common.dropdown_items") }}</h6>
+                <p class="text-muted small mb-0">{{ t("dashboard.manage_sectors_cost_types") }}</p>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-5 mb-3">
+    <h5 class="fw-bold text-secondary mb-0">{{ t("dashboard.active_projects_breakdown") }}</h5>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Project sort">
+        <button type="button"
+                class="btn btn-outline-secondary active js-project-sort"
+                data-target="#activeProjectsBody"
+                data-sort="budget"
+                title="{{ t('dashboard.budget_used') }}">
+            <i class="fas fa-chart-line me-1"></i>{{ t("dashboard.budget_used") }}
+        </button>
+        <button type="button"
+                class="btn btn-outline-secondary js-project-sort"
+                data-target="#activeProjectsBody"
+                data-sort="name"
+                title="{{ t('dashboard.project_name') }}">
+            <i class="fas fa-sort-alpha-down me-1"></i>{{ t("dashboard.project_name") }}
+        </button>
+    </div>
+</div>
+<div class="card shadow-sm border-0 rounded-3 overflow-hidden mb-5">
+    <div class="table-responsive dashboard-project-table-wrap">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                <tr>
+                    <th class="ps-4 py-3">{{ t("dashboard.project_name") }}</th>
+                    <th class="py-3">{{ t("dashboard.total_budget") }}</th>
+                    <th class="py-3">{{ t("dashboard.cost_spent") }}</th>
+                    <th class="pe-4 py-3">{{ t("dashboard.budget_left") }}</th>
+                    <th class="py-3">{{ t("dashboard.budget_used") }}</th>
+                </tr>
+            </thead>
+            <tbody id="activeProjectsBody">
+                {% for p in project_stats %}
+                <tr data-budget="{{ p.percent }}" data-name="{{ p.name|lower }}">
+                    <td class="ps-4 py-3 fw-bold">
+                        <a class="project-name-glass text-decoration-none"
+                           href="{{ url_for('projects.view_projects', project_id=p.id) }}"
+                           title="{{ t('project.ledger_title') }}: {{ p.name }}"
+                           style="color: var(--navy);">
+                            {{ p.name }}
+                        </a>
+                    </td>
+                    <td class="py-3">{{ t("common.currency_bdt") }} {{ "{:,.2f}".format(p.budget) }}</td>
+                    <td class="py-3 text-danger">{{ t("common.currency_bdt") }} {{ "{:,.2f}".format(p.spent) }}</td>
+                    <td class="pe-4 py-3 fw-bold {% if p.left < 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ t("common.currency_bdt") }} {{ "{:,.2f}".format(p.left) }}
+                    </td>
+                    <td>
+                       <div class="progress" style="height: 8px; min-width: 80px;">
+                            <div class="progress-bar {{ 'bg-danger' if p.percent >= 80 else ('bg-warning' if p.percent >= 50 else 'bg-success') }}"
+                                role="progressbar"
+                                data-width="{{ p.percent }}"
+                                id="bar-{{ p.id }}">
+                            </div>
+                        </div>
+                        <small class="{{ 'text-danger' if p.percent >= 80 else 'text-muted' }} fw-bold">
+                            {{ p.percent }}%
+                        </small>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        <i class="fas fa-info-circle me-1"></i> {{ t("dashboard.no_active_projects") }}
+                        {% if is_admin_dashboard or is_operator_dashboard %}
+                        <a href="{{ url_for('projects.add_project') }}" class="text-decoration-none ms-1">{{ t("dashboard.add_one_now") }}</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        bar.style.width = bar.getAttribute('data-width') + '%';
+    });
+
+    document.querySelectorAll('.js-project-sort').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const target = document.querySelector(button.dataset.target);
+            if (!target) {
+                return;
+            }
+
+            const rows = Array.from(target.querySelectorAll('[data-budget][data-name]'));
+            const sortMode = button.dataset.sort;
+            rows.sort(function(a, b) {
+                if (sortMode === 'name') {
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                }
+                return Number(b.dataset.budget || 0) - Number(a.dataset.budget || 0)
+                    || a.dataset.name.localeCompare(b.dataset.name);
+            });
+            rows.forEach(row => target.appendChild(row));
+
+            document.querySelectorAll(`.js-project-sort[data-target="${button.dataset.target}"]`).forEach(function(peer) {
+                peer.classList.toggle('active', peer === button);
+            });
+        });
+    });
+</script>
+
+{% endblock %}

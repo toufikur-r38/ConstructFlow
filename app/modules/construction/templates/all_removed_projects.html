@@ -69,7 +69,11 @@
                 {% for p in projects %}
                 <tr class="archive-row" data-sector="{{ p.sector }}">
                     <td>
-                        <div class="fw-bold text-dark proj-name project-name-glass">{{ p.project_name }}</div>
+                        <a class="fw-bold text-dark proj-name project-name-glass text-decoration-none d-inline-block"
+                           href="{{ url_for('projects.view_projects', project_id=p.id, include_voided=1) }}"
+                           title="{{ t('project.ledger_title') }}: {{ p.project_name }}">
+                            {{ p.project_name }}
+                        </a>
                         <div class="text-muted small text-uppercase fw-bold">({{ p.sector }})</div>
                     </td>
                     <td class="text-secondary small">{{ p.firm_name or t("common.not_available") }}</td>

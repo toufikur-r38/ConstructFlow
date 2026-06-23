@@ -2,16 +2,18 @@ import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import InvalidOperation
 import logging
 from sqlalchemy import func
 from app.extensions import db, limiter
 from app.models import CostEntry, Project
-from app.extensions import cache
 from app.utils.decorators import module_access_required, write_access_required
 from app.utils.db_errors import friendly_database_error
 from app.utils.pagination import get_pagination_args
+from app.modules.construction.utils.dashboard_cache import invalidate_dashboard_math
 from app.modules.construction.utils.dropdown_options import PROJECT_SECTOR, get_dropdown_options
+from app.modules.construction.utils.money import percent_used, to_money, ZERO
+from app.modules.construction.utils.project_sorting import sort_projects_by_status_then_name
 projects_bp = Blueprint('projects', __name__, template_folder='../templates')
 
 
@@ -29,6 +31,15 @@ PROJECT_TEXT_LIMITS = (
     ("Tender ID", MAX_TENDER_LEN),
     ("Address", MAX_ADDR_LEN),
 )
+
+def _project_name_filter_choices():
+    projects = (
+        Project.query
+        .filter(Project.is_void == False)
+        .order_by(Project.project_name.asc())
+        .all()
+    )
+    return sort_projects_by_status_then_name(projects)
 
 def _render_add_project(all_projects, form_data=None):
     return render_template(
@@ -106,10 +117,10 @@ def add_project():
             flash("Work order year must be a 4-digit year (e.g. 2024) or range (e.g. 2023-2024).", "danger")
             return _render_add_project(all_projects, request.form)
  
-        parsed_price = Decimal('0')
+        parsed_price = ZERO
         if price_str:
             try:
-                parsed_price = Decimal(price_str)
+                parsed_price = to_money(price_str)
                 if parsed_price < 0:
                     raise ValueError("Price cannot be negative.")
             except (InvalidOperation, ValueError):
@@ -145,7 +156,7 @@ def add_project():
  
         try:
             db.session.commit()
-            cache.delete('dashboard_math_data')
+            invalidate_dashboard_math()
         except Exception as e:
             db.session.rollback()
             logging.error(
@@ -170,9 +181,17 @@ def view_projects():
     search_query = request.args.get('search', '').strip()
     project_id_filter = request.args.get('project_id', '').strip()
     status_filter = request.args.get('status_filter', 'all').strip()
+    include_voided_requested = request.args.get('include_voided') == '1' and bool(project_id_filter)
+    target_project = None
+    if include_voided_requested:
+        try:
+            target_project = db.session.get(Project, int(project_id_filter))
+        except (TypeError, ValueError):
+            target_project = None
+    include_voided = bool(target_project and target_project.is_void)
     page, per_page = get_pagination_args(request)
     
-    query = Project.query.filter_by(is_void=False)
+    query = Project.query if include_voided else Project.query.filter_by(is_void=False)
 
     if project_id_filter:
         try:
@@ -203,37 +222,39 @@ def view_projects():
     project_ids = [project.id for project in all_projects]
     spent_by_project = {}
     if project_ids:
-        spent_rows = (
+        spent_query = (
             db.session.query(
                 CostEntry.project_id,
                 func.coalesce(func.sum(CostEntry.total_amount), 0).label('spent')
             )
-            .filter(
-                CostEntry.is_void == False,
-                CostEntry.project_id.in_(project_ids)
-            )
-            .group_by(CostEntry.project_id)
-            .all()
+            .filter(CostEntry.project_id.in_(project_ids))
         )
-        spent_by_project = {project_id: spent or Decimal('0') for project_id, spent in spent_rows}
+        if not include_voided:
+            spent_query = spent_query.filter(CostEntry.is_void == False)
+        spent_rows = spent_query.group_by(CostEntry.project_id).all()
+        spent_by_project = {project_id: to_money(spent) for project_id, spent in spent_rows}
 
     project_financials = {}
     for project in all_projects:
-        budget = project.contract_price or Decimal('0')
-        spent = spent_by_project.get(project.id, Decimal('0'))
+        budget = to_money(project.contract_price)
+        spent = to_money(spent_by_project.get(project.id))
         left = budget - spent
-        percent = round((spent / budget * 100), 1) if budget > 0 else 0
+        percent = percent_used(spent, budget)
         project_financials[project.id] = {
             'spent': spent,
             'left': left,
             'percent': percent,
         }
     
-    available_sectors = db.session.query(Project.sector)\
-        .filter(Project.is_void == False)\
-        .distinct()\
-        .order_by(Project.sector.asc())\
+    sector_query = db.session.query(Project.sector)
+    if not include_voided:
+        sector_query = sector_query.filter(Project.is_void == False)
+    available_sectors = (
+        sector_query
+        .distinct()
+        .order_by(Project.sector.asc())
         .all()
+    )
     
     sectors_list = [s[0] for s in available_sectors if s[0]]
     
@@ -241,5 +262,7 @@ def view_projects():
                            projects=all_projects, 
                            sectors=sectors_list,
                            statuses=VALID_PROJECT_STATUSES,
+                           project_choices=_project_name_filter_choices(),
                            project_financials=project_financials,
+                           include_voided=include_voided,
                            pagination=pagination)

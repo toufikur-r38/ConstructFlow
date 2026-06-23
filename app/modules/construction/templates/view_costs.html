@@ -2,6 +2,8 @@
 {% block title %}{{ t("cost.expenditure_ledger") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link href="{{ url_for('static', filename='vendor/select2/css/select2.min.css') }}" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/select2/css/select2-bootstrap-5-theme.min.css') }}" />
 <style>
     .filter-node-input {
         background-color: #f8f9fa !important;
@@ -32,10 +34,13 @@
 <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
     <div>
         <h3 class="fw-bold mb-0" style="color: var(--navy);">{{ t("cost.expenditure_ledger") }}</h3>
-        <p class="text-muted small mb-0">{{ t("pdf.records_sorted_oldest") }}</p>
+        <p class="text-muted small mb-0">{{ t("pdf.records_sorted_oldest") }} {{ t("pdf.sorted_by_date_entry_id") }}</p>
+        {% if include_voided %}
+        <span class="badge bg-danger bg-opacity-10 text-danger mt-2">{{ t("project.voided") }} {{ t("project.ledger_title") }}</span>
+        {% endif %}
     </div>
     <div class="d-flex gap-2">
-        {% if selected_project and selected_project.status == 'Completed' and (current_user.role in ['admin', 'operator'] or current_user.is_super_admin) %}
+        {% if selected_project and selected_project.status == 'Completed' and not selected_project.is_void and not include_voided and (current_user.role in ['admin', 'operator'] or current_user.is_super_admin) %}
         <a href="{{ url_for('costs.add_late_cost', project_id=selected_project.id) }}"
            class="btn btn-warning fw-bold shadow-sm">
             <i class="fas fa-plus-circle me-1"></i> {{ t("cost.add_late_cost") }}
@@ -44,7 +49,8 @@
         <a href="{{ url_for('costs.download_pdf', **request.args) }}"
            class="btn btn-outline-danger fw-bold shadow-sm"
            id="downloadPdfBtn"
-           data-result-count="{{ pagination.total if pagination else 0 }}">
+           data-result-count="{{ pagination.total if pagination else 0 }}"
+           data-detail-threshold="{{ detail_pdf_row_threshold }}">
             <i class="fas fa-file-pdf me-1"></i> {{ t("cost.download_pdf") }}
         </a>
     </div>
@@ -53,15 +59,22 @@
 <div class="card p-3 mb-4 shadow-sm bg-white border-0 rounded-3">
     <form class="row g-2 align-items-end" method="GET" action="{{ url_for('costs.view_costs') }}" id="filterForm">
         <input type="hidden" name="per_page" value="{{ pagination.per_page if pagination else 25 }}">
+        {% if include_voided %}
+        <input type="hidden" name="include_voided" value="1">
+        {% endif %}
         
         <div class="col-md-3">
             <label class="form-label small fw-bold text-muted text-uppercase mb-1">{{ t("cost.project") }}</label>
-            <select name="project_filter" class="form-select form-select-sm filter-node-input" onchange="this.form.submit()">
-                <option value="">{{ t("cost.all_projects") }}</option>
+            <select name="project_filter" class="form-select form-select-sm filter-node-input project-search-select" onchange="this.form.submit()">
+                <option value="">{{ t("cost.all_running_projects") }}</option>
+                <option value="{{ all_projects_filter }}"
+                    {% if request.args.get('project_filter') == all_projects_filter %}selected{% endif %}>
+                    {{ t("cost.all_projects") }}
+                </option>
                 {% for project in projects %}
                 <option value="{{ project.id }}" 
                     {% if request.args.get('project_filter') == project.id|string %}selected{% endif %}>
-                    {{ project.project_name }}{% if project.status != 'Running' %} ({{ project.status }}){% endif %}
+                    {{ project.project_name }}{% if project.is_void %} ({{ t("project.voided") }}){% elif project.status != 'Running' %} ({{ project.status }}){% endif %}
                 </option>
                 {% endfor %}
             </select>
@@ -111,6 +124,7 @@
         <span class="text-danger fw-semibold">{{ t("cost.note") }}:</span>
         {{ t("cost.negative_amounts_note") }}
     </div>
+    {% set can_manage_costs = (current_user.role in ['admin', 'operator'] or current_user.is_super_admin) and not include_voided %}
     {% if costs %}
     <table class="table table-hover align-middle mb-0">
         <thead style="background-color: var(--navy); color: white;">
@@ -122,7 +136,7 @@
                 <th class="py-3">{{ t("cost.quantity") }}</th>
                 <th class="py-3">{{ t("cost.unit_rate") }}</th>
                 <th class="py-3 pe-4 text-center">{{ t("cost.total_amount") }}</th>
-                {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}<th class="text-end pe-4">{{ t("common.actions") }}</th>{% endif %}
+                {% if can_manage_costs %}<th class="text-end pe-4">{{ t("common.actions") }}</th>{% endif %}
             </tr>
         </thead>
         <tbody class="border-top-0">
@@ -134,7 +148,7 @@
                 <td>
                     <div class="fw-bold">
                         <a class="project-name-glass text-decoration-none"
-                           href="{{ url_for('projects.view_projects', project_id=cost.project_id) }}"
+                           href="{{ url_for('projects.view_projects', project_id=cost.project_id, include_voided=1) if cost.project.is_void else url_for('projects.view_projects', project_id=cost.project_id) }}"
                            title="{{ t('project.ledger_title') }}: {{ cost.project.project_name }}">
                             {{ cost.project.project_name }}
                         </a>
@@ -148,10 +162,10 @@
                 <td class="text-center {{ 'text-danger fw-semibold' if cost.total_amount < 0 else '' }}">
                         ৳ {{ "{:,.2f}".format(cost.total_amount) }}
                 </td>
-                {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}
+                {% if can_manage_costs and not cost.is_void and not cost.project.is_void %}
                     <td class="text-end pe-4">
                         <div class="btn-group shadow-sm bg-white rounded">
-                            <a href="{{ url_for('construction_admin.edit_cost', cost_id=cost.id) }}" class="btn btn-sm btn-outline-light border-0 text-info" title="{{ t('common.edit') }}">
+                            <a href="{{ url_for('construction_admin.edit_cost', cost_id=cost.id, next=request.full_path) }}" class="btn btn-sm btn-outline-light border-0 text-info" title="{{ t('common.edit') }}">
                                 <i class="fas fa-edit"></i>
                             </a>
                             <button type="button" 
@@ -179,7 +193,7 @@
                 <td class="pe-4 text-end fw-bold text-danger fs-5 py-3">
                     ৳ {{ "{:,.2f}".format(costs | map(attribute='total_amount') | sum) }}
                 </td>
-                {% if current_user.role in ['admin', 'operator'] or current_user.is_super_admin %}<td></td>{% endif %}
+                {% if can_manage_costs %}<td></td>{% endif %}
             </tr>
         </tfoot>
     </table>
@@ -249,11 +263,21 @@
         </div>
     </div>
 </div>
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.6.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/select2/js/select2.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const filterForm = document.getElementById('filterForm');
         const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+        if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+            window.jQuery('.project-search-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                minimumResultsForSearch: 0
+            });
+        }
 
         if (typeof flatpickr === 'function') {
             flatpickr("#start_date", {
@@ -301,8 +325,10 @@
 
                 const projectValue = projectSelect.value;
                 const categoryValue = categorySelect.value;
+                const hasSpecificProject = projectValue && projectValue !== '{{ all_projects_filter }}';
+                const hasExportFilter = Boolean(hasSpecificProject || categoryValue || startDate || endDate);
 
-                if (!projectValue && !categoryValue && !startDate && !endDate) {
+                if (!hasExportFilter) {
                     event.preventDefault();
                     Swal.fire({
                         title: '{{ t("cost.select_filter_first") }}',
@@ -318,14 +344,24 @@
 
                 const projectText = projectValue
                     ? projectSelect.options[projectSelect.selectedIndex].text.trim()
-                    : '{{ t("cost.all_projects") }}';
+                    : '{{ t("cost.all_running_projects") }}';
                 const categoryText = categoryValue || '{{ t("cost.all_categories") }}';
                 const fromText = startDate || '{{ t("cost.all_time") }}';
                 const toText = endDate || '{{ t("cost.all_time") }}';
-                const resultCount = Number(downloadPdfBtn.dataset.resultCount || 0).toLocaleString();
-                const broadExportWarning = !projectValue
+                const rawResultCount = Number(downloadPdfBtn.dataset.resultCount || 0);
+                const detailThreshold = Number(downloadPdfBtn.dataset.detailThreshold || 5000);
+                const resultCount = rawResultCount.toLocaleString();
+                const isLargeReport = rawResultCount > detailThreshold;
+                const broadExportWarning = projectValue === '{{ all_projects_filter }}'
                     ? '<div class="alert alert-warning py-2 px-3 mt-3 mb-0"><strong>{{ t("cost.all_projects_selected") }}</strong> {{ t("cost.large_report_warning") }}</div>'
                     : '';
+                const largeExportNotice = isLargeReport
+                    ? '<div class="alert alert-info py-2 px-3 mt-3 mb-0"><strong>{{ t("cost.large_zip_download") }}</strong> {{ t("cost.large_zip_download_help") }}</div>'
+                    : '';
+                const confirmIcon = isLargeReport ? 'fas fa-file-archive' : 'fas fa-file-pdf';
+                const confirmText = isLargeReport
+                    ? '{{ t("cost.download_zip") }}'
+                    : '{{ t("cost.generate_pdf") }}';
 
                 Swal.fire({
                     title: '{{ t("cost.generate_pdf_report") }}',
@@ -336,6 +372,7 @@
                             <div><strong>{{ t("cost.from_date") }}:</strong> ${fromText}</div>
                             <div><strong>{{ t("cost.to_date") }}:</strong> ${toText}</div>
                             <div><strong>{{ t("cost.matching_records") }}:</strong> ${resultCount}</div>
+                            ${largeExportNotice}
                             ${broadExportWarning}
                         </div>
                     `,
@@ -343,7 +380,7 @@
                     showCancelButton: true,
                     confirmButtonColor: '#dc3545',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-file-pdf"></i> {{ t("cost.generate_pdf") }}',
+                    confirmButtonText: `<i class="${confirmIcon}"></i> ${confirmText}`,
                     cancelButtonText: '{{ t("common.cancel") }}',
                     backdrop: 'rgba(26, 42, 108, 0.4)'
                 }).then((result) => {
