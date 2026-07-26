@@ -77,7 +77,7 @@ python -m venv .venv
 Install dependencies:
 
 ```powershell
-pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 Create an environment file:
