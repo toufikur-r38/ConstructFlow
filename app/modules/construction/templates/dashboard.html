@@ -23,11 +23,38 @@
         overflow: auto;
     }
 
+
+    .dashboard-project-table {
+        table-layout: fixed;
+        min-width: 820px;
+    }
+
     .dashboard-project-table-wrap thead th {
         position: sticky;
         top: 0;
         z-index: 2;
         background: var(--bs-light);
+        color: var(--text-muted) !important;
+        overflow-wrap: anywhere;
+    }
+
+    .dashboard-project-table td {
+        overflow-wrap: anywhere;
+    }
+
+    html[data-bs-theme="dark"] .dashboard-project-table-wrap thead th {
+        background: #111827 !important;
+        color: #dbe4f0 !important;
+        border-color: var(--border-soft) !important;
+    }
+
+    .dashboard-project-toolbar {
+        min-width: 0;
+    }
+
+    .dashboard-project-toolbar .btn-group {
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
     .icon-box {
