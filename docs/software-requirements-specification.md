@@ -1,554 +1,444 @@
-# Software Requirements Specification (SRS)
-## ConstructFlow: A Web-Based Cost Tracking and Management System
+# Software Requirements Specification
 
-| Document field | Value |
+| Document control | Value |
 |---|---|
-| Project | ConstructFlow |
-| Course | CSE 309 — Web Programming |
-| Department / institution | Department of Computer Science and Engineering, Independent University, Bangladesh |
-| Prepared by | Toufikur Rahman |
-| Proposal submission date | 24 September 2026 |
-| SRS version | 1.0 — Initial draft |
-| Date | 16 October 2026 |
-| Status | Proposed baseline; stakeholder and supervisor validation required |
+| Project | ConstructFlow — Construction Ledger and Cost Management |
+| Author | Toufikur Rahman · ID 2420826 · Section 01 |
+| Course / institution | CSE 309 — Web Programming · Independent University, Bangladesh |
+| Submitted to | Md Abu Sayed, Lecturer, Department of Computer Science and Engineering |
+| Version / date | 1.1 · 16 October 2026 |
+| Status | Submission-ready source-based specification; stakeholder approval pending |
 
-> **Document status note:** This SRS follows a conventional IEEE-style organization for software requirements. It is not claimed to be formally certified against a particular IEEE edition. The project proposal is the primary source. Requirements added to make the specification testable are marked as proposed or subject to validation.
 
 ## 1. Introduction
 
-### 1.1 Purpose
-This Software Requirements Specification defines the intended behavior, interfaces, constraints, and quality expectations for ConstructFlow. It is intended for the student developer, project supervisor, testers, and representative users who review the proposed system.
+### 1.1 Purpose and audience
 
-The SRS establishes a baseline for design, implementation, and acceptance testing. Unresolved business rules must be decided before the related features are considered final.
+This specification defines ConstructFlow's intended behavior and acceptance basis for the student developer, supervisor, testers and construction-firm representatives. It uses a conventional IEEE-style SRS organization: introduction, overall description, interfaces, functional requirements, data, quality attributes and verification. Formal compliance with a specific standard edition is not claimed.
 
-### 1.2 Document conventions
-- **Shall** indicates a requirement proposed as mandatory for the defined baseline.
-- **Should** indicates an important requirement that may be negotiated.
-- **May** indicates an optional capability.
-- **TBD** indicates a detail that has not been established and requires a decision.
-- Requirement identifiers (FR, NFR, IR, and BR) support traceability.
-- “Proposed / validate” means the requirement is a reasonable operationalization of the proposal, but has not been explicitly confirmed by stakeholders.
+### 1.2 Scope
 
-### 1.3 Intended audience
-- Project author and implementation team.
-- Course instructor / project supervisor.
-- Testers and reviewers.
-- Construction-firm representatives, if available for validation.
+ConstructFlow centralizes construction project costs and budgets to reduce fragmented records, difficult retrieval and untraceable changes. The proposal additionally requires stock, bill tracking, office/site separation and mobile usability. The README documents the present ledger, authentication, correction, reporting and operational baseline. Proposal obligations absent from R remain explicit implementation gaps.
 
-### 1.4 Product scope
-ConstructFlow is a web-based system intended to help small and mid-sized construction firms centralize information about projects, costs, budgets, stock, and bills. The system aims to reduce reliance on separate tally books and spreadsheets, improve cost retrieval and visibility, support coordination across offices/sites, and improve accountability through role-based permissions and record history.
+Payroll, banking/payment processing, tax filing, full ERP, external accounting integrations, native mobile apps, unrelated-firm multi-tenancy and offline synchronization are excluded from this specification unless approved through change control. These boundaries are analyst proposals.
 
-The initial role model includes administrator, operator, and viewer. The interface should be usable on mobile devices because data entry may occur at construction sites.
+### 1.3 Conventions
 
-### 1.5 References
-1. Rahman, Toufikur. *ConstructFlow: A Web-Based Cost Tracking and Management System for a Construction Firm to track their cost, budget, stock and bills.* CSE 309 Web Programming Project Topic Proposal, Independent University, Bangladesh, submitted 24 September 2026.
-2. *ConstructFlow Requirements Elicitation Document*, `docs/requirements-elicitation.md`.
-3. *ConstructFlow Requirements Analysis Document*, `docs/requirements-analysis.md`.
+“Shall” identifies a required outcome for the proposed baseline. FR and NFR IDs are stable across the companion documents. Must/Should priorities are analyst recommendations. A source-supported requirement is not a claim that implementation passes acceptance. D requirements and unresolved details require validation before baseline approval; a TBD is not a completed, testable commitment.
+
+## Source and evidence register
+
+| Code | Source | Authority and limits |
+|---|---|---|
+| P | *CSE309_project_proposal.pdf*, Toufikur Rahman, submitted 24 September 2026, pp. 1–2 | Primary business scope. Section 1 names cost, budget, stock and bills; sections 2–3 describe operational problems; section 4 identifies roles, archive/history, office separation and mobile use; section 5 describes expected outcomes. |
+| R | [Repository README](https://github.com/toufikur-r38/ConstructFlow/blob/f2af045eaea023b78e60110c45085b08eae31d3f/README.md), reviewed 16 October 2026 | Current documented technical/feature baseline. README blob: `4f7e2cb6b09a4f601c511ce4344a04473f17698f`. Descriptions are not proof of successful runtime tests. |
+
+**Evidence labels:** **P** = explicit proposal intent; **R** = README-documented capability or constraint; **D** = derived requirement, unverified and awaiting validation. **P / implementation unverified** preserves a proposal obligation absent from the README. Any detailed behavior beyond the cited source is explicitly labeled D. No interviews, observations, stakeholder approvals, production tests, or performance measurements are claimed.
+
+The proposal governs intended business scope; the README governs the documented implementation baseline. A missing README feature is a gap to resolve, not permission to silently remove it from scope. Priorities are analyst recommendations, not stakeholder decisions.
+
+### 1.4 Related documents and glossary
+
+- [Requirements Elicitation Document](requirements-elicitation.md): method selection, planned consultation and evidence limits.
+- [Requirements Analysis Document](requirements-analysis.md): scope reconciliation, use cases, data concepts and dependencies.
+
+| Term | Meaning |
+|---|---|
+| Project ledger | Central records of projects, budgets and related expenditure |
+| Late cost | Cost entered using the completed-project workflow documented in R |
+| Void / restore | Retain an inactive record / return it through a controlled workflow |
+| Audit snapshot | Preserved record information supporting review of a change |
+| Module access | Assignment to a workspace; does not itself establish office isolation |
+| Super-admin | Separate system-owner flag documented by R; exact powers unverified |
+| RPO / RTO | Maximum acceptable data-loss interval / recovery-time objective; values TBD |
 
 ## 2. Overall description
 
-### 2.1 Product perspective
-ConstructFlow is planned as a centralized web application. Authorized users will access shared system services through a browser, while the system limits which functions and records each user can access. The proposal does not specify a required technology stack, hosting platform, database, or external integration.
+### 2.1 Product perspective and functions
 
-### 2.2 Product functions
-At a high level, the system is expected to:
-- Maintain project/site information.
-- Record, list, search, and filter project costs.
-- Store budget information and show a basic comparison with recorded costs.
-- Maintain stock information.
-- Record and retrieve bill information.
-- Authenticate users and enforce admin/operator/viewer permissions.
-- Separate data according to authorized office/site scope while keeping the system centralized.
-- Archive records rather than permanently delete them through normal user workflows.
-- Retain traceability for relevant edits and archive actions.
-- Provide dashboard or summary views for permitted users.
-- Support common workflows on mobile-sized screens.
+ConstructFlow is a centralized browser-based Flask application. The README documents an app factory, environment configuration, SQLAlchemy models, account/admin/auth modules, and Construction routes, services, templates and utilities. Shared templates and English/Bangla JSON resources support the UI. The module hub allows assignment to Construction and future extensibility; future modules are not specified requirements.
 
-### 2.3 User classes and characteristics
+The documented functions cover authentication, role and module authorization, project registration, running and late costs, edit/void/restore with snapshots, managed categories, financial dashboards, filtered PDF/Excel reports, large ZIP exports, account maintenance, logs and manual database backup.
 
-| User class | Expected capability | Notes |
-|---|---|---|
-| Administrator | Manage accounts, roles, access scope, and approved administrative operations | Exact archive and audit privileges are TBD |
-| Operator | Enter and maintain permitted project, cost, bill, and stock records | Exact correction and approval privileges are TBD |
-| Viewer | View permitted records and summaries | Read-only interpretation is proposed and requires confirmation |
-| Management / project manager | Review project cost and budget summaries | May use an admin or viewer role; mapping TBD |
-| Site / office staff | Use permitted functions from site/office locations | Mobile usability is important |
+### 2.2 Users
 
-The proposal explicitly names admin, operator, and viewer. Additional descriptions are analysis-level actor groupings, not confirmed job titles.
+Viewer, operator and admin are named roles. Super-admin is a separate flag rather than an assumed fourth role. Management, accountants, site/store staff and backup operators are stakeholder categories to map to accounts and permissions during D-01/D-08. Their names do not grant additional privileges.
 
-### 2.4 Operating environment
-- Web browser on desktop, tablet, or mobile device.
-- Network access to the hosted application is assumed for the initial release.
-- Supported browser versions and hosting requirements: TBD.
-- Offline operation is not included unless separately approved.
+### 2.3 Operating environment and constraints
 
-### 2.5 Design and implementation constraints
-- The project is being developed for the CSE 309 Web Programming course.
-- The application must address the stated construction cost-tracking problem.
-- Role-based access, office/site data separation, soft deletion/archive, and mobile-friendly use are core design concerns.
-- No programming language, framework, database, or deployment platform is mandated by the proposal.
+| Area | Documented baseline R |
+|---|---|
+| Application | Python / Flask; Flask-Login; SQLAlchemy; Flask-Migrate/Alembic |
+| Data | PostgreSQL-ready configuration; DATABASE_URL required outside development |
+| Local fallback | SQLite when DATABASE_URL is absent and FLASK_ENV=development or FLASK_DEBUG=1 |
+| Cache / rate limits | Redis support; Redis or another persistent rate-limit backend required outside development |
+| Security configuration | SECRET_KEY required outside development; secure production cookies; CSRF, rate limiting and security headers |
+| CSRF lifetime | README example WTF_CSRF_TIME_LIMIT=3600 means one hour; not a claimed mandatory immutable value |
+| Backup tooling | DATABASE_URL and PostgreSQL client tools including pg_dump |
+| Client | Browser and network access; device/browser versions D-06 |
 
-### 2.6 User documentation
-At minimum, the release should include brief instructions for login, role permissions, creating and finding records, reviewing summaries, and archiving/correcting records. The exact format is an implementation decision.
+Runtime dependency versions are maintained in requirements.txt, not invented here. Hosting provider, server sizing, domain, network architecture and workload limits are unverified. Production transport shall use HTTPS (**D**, derived security requirement; deployment verification pending).
 
-### 2.7 Assumptions and dependencies
-- The initial system is assumed to support one construction firm operating across multiple offices/sites; confirm this assumption.
-- Users are assumed to have individual accounts.
-- Users are assumed to have network access while using the application.
-- Required cost categories, bill fields, stock rules, and budget calculations will be confirmed before implementation.
-- Access to sample forms or workflows depends on stakeholders making non-sensitive examples available.
+### 2.4 Assumptions, dependencies and documentation
+
+One firm with multiple offices/sites is the working interpretation of P; unrelated-firm tenancy is not established. Individual accounts and online access are proposed assumptions. Availability of staff and anonymized examples affects validation. User documentation should explain login, permissions, entry, correction, reports and recovery responsibilities (**D**); the README already supplies setup and backup commands.
 
 ## 3. External interface requirements
 
-### 3.1 User interface
-**UIR-01:** The system shall provide a consistent navigation structure for the main project, cost, budget, stock, bill, and account functions.
+### 3.1 User interfaces
 
-**UIR-02:** The system shall provide forms with clearly labeled fields and identify required inputs.
-
-**UIR-03:** The system shall display understandable validation and operation-result messages.
-
-**UIR-04:** The interface shall adapt to common mobile, tablet, and desktop viewport sizes and keep core workflows usable on mobile screens.
-
-**UIR-05:** The system shall visually distinguish active records from archived records where both are shown.
-
-**UIR-06:** Controls and views shall be shown or enabled according to the user's permissions, while server-side authorization remains the enforcement mechanism.
-
-Detailed wireframes, color palette, accessibility conformance target, and exact navigation labels are TBD.
-
-### 3.2 Hardware interfaces
-No direct hardware interface is specified. The system is expected to run in a browser on ordinary user devices. Any printer, barcode scanner, or other peripheral integration is out of scope unless approved.
-
-### 3.3 Software interfaces
-- A supported web browser is required.
-- The application will use a persistent data store, but its product and version are TBD.
-- No external accounting, banking, payment, or inventory integration is specified.
-- File upload for bill images or documents is TBD and must not be assumed as required.
-
-### 3.4 Communications interfaces
-The application will communicate over a network using standard web communication mechanisms selected during design. Production deployment should use encrypted transport (HTTPS). Exact hosting, domain, and deployment configuration are TBD.
-
-## 4. System features and functional requirements
-
-### 4.1 Authentication and access control
-
-**FR-001 — User authentication (proposed baseline).** The system shall require a user to authenticate before accessing protected records or functions.
-
-**FR-002 — Role-based authorization.** The system shall support the roles administrator, operator, and viewer.
-
-**FR-003 — Permission enforcement.** The system shall authorize each protected operation according to the user's role and assigned scope. Enforcement shall not rely only on hiding interface controls.
-
-**FR-004 — Viewer restriction (proposed; validate).** A viewer shall be able to view permitted records but shall not create, edit, archive, or delete business records.
-
-**FR-005 — User administration (proposed; validate).** An authorized administrator shall be able to create or update user accounts and assign a role and permitted office/site scope.
-
-**FR-006 — Access denial.** When a user attempts an operation or record access they are not authorized to perform, the system shall deny the request and shall not disclose the protected record contents.
-
-Acceptance checks:
-- An unauthenticated user cannot access protected pages or data operations.
-- A viewer cannot modify a record by using a direct request.
-- A user cannot retrieve a record outside their authorized office/site scope.
-- Only authorized administrators can change user roles or access scope.
-
-### 4.2 Project and site records
-
-**FR-010 — Project record management (proposed).** The system shall allow authorized users to create and view project records.
-
-**FR-011 — Project record updates (proposed).** The system shall allow updates to project details only to roles permitted by the access policy.
-
-**FR-012 — Project/site association (proposed).** Project records shall be associated with an office or site according to the agreed organizational model.
-
-**FR-013 — Project retrieval.** The system shall allow authorized users to find projects they are permitted to access.
-
-Acceptance checks:
-- A permitted user can create and retrieve a valid project record.
-- An unauthorized user cannot view or update a project outside their scope.
-- Mandatory project fields and the office/site relationship are confirmed before implementation.
-
-### 4.3 Cost tracking
-
-**FR-020 — Cost entry.** The system shall allow authorized users to record project-related costs.
-
-**FR-021 — Cost validation.** The system shall validate required cost fields and reject invalid entries with a clear explanation.
-
-**FR-022 — Cost listing.** The system shall display cost records that the user is authorized to access.
-
-**FR-023 — Cost search and filtering.** The system shall allow users to search or filter cost records using agreed criteria, including cost type/category if that field is adopted.
-
-**FR-024 — Cost correction.** The system shall support corrections only according to the agreed role and audit policy. Corrections to existing records shall not silently erase required history.
-
-**FR-025 — Duplicate-entry assistance (proposed).** The system should warn users when a new cost entry appears to match an existing entry according to matching rules agreed during analysis. The system shall not silently discard a legitimate entry solely because it resembles another entry.
-
-Acceptance checks:
-- A valid cost entry can be saved and retrieved by an authorized user.
-- Missing or invalid required data is rejected.
-- A user can narrow results using confirmed filter fields.
-- Relevant edits are traceable according to Section 4.8.
-- Duplicate matching fields and warning behavior are specified before testing.
-
-### 4.4 Budget and cost summaries
-
-**FR-030 — Budget record management (proposed).** The system shall allow authorized users to record and retrieve budget information for the agreed project scope and period.
-
-**FR-031 — Cost-versus-budget view.** The system shall present recorded costs and the applicable budget together when sufficient valid data exists.
-
-**FR-032 — Missing budget state.** If no applicable budget exists, the system shall clearly indicate that a budget comparison is unavailable rather than presenting a misleading result.
-
-**FR-033 — Summary scope.** Budget and cost summaries shall include only records that the user is authorized to access and that satisfy the agreed date, status, and calculation rules.
-
-Acceptance checks:
-- An authorized user can save and retrieve a budget.
-- Given a defined budget and defined included costs, the displayed comparison matches the agreed calculation rule.
-- If no budget exists, the UI communicates the missing state.
-- Currency, time period, and treatment of archived/corrected records are agreed before implementation.
-
-### 4.5 Stock management
-
-**FR-040 — Stock records.** The system shall allow authorized users to maintain stock information.
-
-**FR-041 — Stock validation.** The system shall validate required stock fields and reject invalid values according to the confirmed unit and quantity rules.
-
-**FR-042 — Stock visibility.** Users shall only view stock information within their permitted access scope.
-
-**FR-043 — Stock transaction model (TBD).** Whether the first release records only current quantities or records receipts, issues, adjustments, and transaction history must be decided before implementation.
-
-Acceptance checks:
-- Authorized users can create and retrieve agreed stock records.
-- Invalid required fields are rejected.
-- Stock access respects office/site permissions.
-- Stock balance calculations are tested only after the transaction model is confirmed.
-
-### 4.6 Bill management
-
-**FR-050 — Bill record entry.** The system shall allow authorized users to record bill information using fields agreed during requirements validation.
-
-**FR-051 — Bill retrieval.** The system shall allow authorized users to search for and retrieve bill records.
-
-**FR-052 — Bill association (proposed).** Where applicable, a bill record shall be associated with a project and/or cost record according to the agreed data model.
-
-**FR-053 — Bill supporting files (TBD).** Whether the system stores uploaded bill images/documents or only bill metadata must be confirmed.
-
-**FR-054 — Bill auditability.** Relevant bill-record changes and archive actions shall be traceable according to Section 4.8.
-
-Acceptance checks:
-- An authorized user can create and retrieve a valid bill record.
-- Required bill fields and duplicate-warning rules are documented.
-- A bill is visible only to authorized users.
-- File handling is tested only if attachment support is approved.
-
-### 4.7 Office/site separation and centralized access
-
-**FR-060 — Centralized system.** The system shall provide a centralized application for permitted records from multiple offices/sites.
-
-**FR-061 — Scope-based access.** The system shall restrict users to the offices, sites, projects, and records assigned by the approved access policy.
-
-**FR-062 — Cross-site summaries.** Cross-site or cross-office summaries shall be shown only to roles explicitly authorized to see them.
-
-**FR-063 — Scope consistency.** Search, list, detail, and summary functions shall apply the same access restrictions.
-
-Acceptance checks:
-- Test users with different scopes see only their authorized records.
-- Search and dashboard functions do not reveal restricted record names, counts, or details unless explicitly permitted.
-- Management's cross-site access rules are agreed and tested.
-
-### 4.8 Archive and audit history
-
-**FR-070 — Soft deletion/archive.** The system shall support archiving or soft-deleting records instead of permanently deleting them through ordinary application workflows.
-
-**FR-071 — Edit history.** The system shall preserve traceability for relevant record edits as defined by the audit policy.
-
-**FR-072 — Action attribution (proposed).** Audit entries shall identify the authenticated actor, action type, affected record, and timestamp for relevant create/edit/archive actions.
-
-**FR-073 — Audit access.** Audit history shall be visible only to authorized roles.
-
-**FR-074 — Archived-record handling.** Archived records shall be distinguishable from active records and shall not appear in ordinary active lists unless the user selects an approved archived-record view.
-
-**FR-075 — Restore and retention policy (TBD).** Permissions for restoring records, retention duration, and any permanent purge process must be defined before implementation.
-
-Acceptance checks:
-- Archiving a record does not remove it permanently from the underlying retained record history.
-- A permitted reviewer can identify who performed a relevant action and when.
-- Unauthorized users cannot inspect audit history.
-- Restore and retention behavior follows the approved policy.
-
-### 4.9 Dashboard and reporting
-
-**FR-080 — Dashboard summary (proposed).** The system should provide a summary of project costs and related information appropriate to the user's permissions.
-
-**FR-081 — Consistent totals.** Dashboard figures shall use the same approved calculation rules as detailed records and budget comparisons.
-
-**FR-082 — Report export (optional/TBD).** Export to CSV, PDF, or other formats may be added if stakeholders specify the needed formats and permissions.
-
-Acceptance checks:
-- Dashboard information reflects the underlying authorized records.
-- Totals match agreed test data and calculation rules.
-- Export is not considered part of the baseline until explicitly approved.
-
-### 4.10 Usability and feedback
-
-**FR-090 — Responsive interface.** Core data-entry and record-review workflows shall remain usable on common mobile-sized screens.
-
-**FR-091 — Operation feedback.** The system shall communicate whether a save, update, archive, or other operation succeeded or failed.
-
-**FR-092 — Form feedback.** Validation messages shall identify the field or issue requiring attention where practicable.
-
-**FR-093 — Consistent navigation.** The main system modules shall use consistent navigation and terminology.
-
-Acceptance checks:
-- Test the core workflows on agreed mobile and desktop viewport sizes.
-- Users can distinguish successful save from validation or server failure.
-- Common forms expose required fields and actionable errors.
-
-## 5. Non-functional requirements
-
-The original proposal does not specify numerical performance, uptime, recovery, or accessibility targets. Proposed measurable targets below must be reviewed for feasibility and formally agreed before being treated as contractual acceptance criteria.
-
-### 5.1 Security
-
-**NFR-001:** The application shall enforce authentication for protected operations.
-
-**NFR-002:** Authorization shall be checked on the server for each protected read or write operation.
-
-**NFR-003:** The application shall use HTTPS in a production deployment.
-
-**NFR-004:** Passwords, if locally managed, shall not be stored as plaintext; an established password-hashing mechanism shall be used.
-
-**NFR-005:** Error messages shall not expose secrets, credentials, or unauthorized record contents.
-
-### 5.2 Data integrity and auditability
-
-**NFR-010:** Required fields and data types shall be validated before records are accepted.
-
-**NFR-011:** Relevant create/edit/archive events shall be traceable according to the approved audit policy.
-
-**NFR-012:** Financial and stock calculations shall follow documented rules and be tested against known examples.
-
-**NFR-013:** The application shall prevent unauthorized changes to records and permissions.
-
-### 5.3 Usability and responsiveness
-
-**NFR-020:** Core workflows shall be usable on agreed mobile, tablet, and desktop viewport sizes without requiring desktop-only interactions.
-
-**NFR-021:** Forms shall use readable labels, clear validation messages, and consistent interaction patterns.
-
-**NFR-022:** The system should minimize unnecessary steps for common cost and bill entry; final usability criteria should be checked with representative users if available.
-
-### 5.4 Performance
-
-**NFR-030 — Candidate response-time target:** Common list and search operations should complete within 3 seconds under a representative test dataset and agreed test environment. This is a proposed target, not a value supplied by the project proposal.
-
-**NFR-031:** The test report shall state the test dataset, environment, and operation measured when performance is evaluated.
-
-### 5.5 Reliability, backup, and recovery
-
-**NFR-040:** Backup frequency, backup storage, restoration procedure, and recovery targets shall be defined before any production use.
-
-**NFR-041:** The system shall provide understandable failure feedback and shall avoid reporting a failed save as successful.
-
-**NFR-042:** Availability and uptime targets are TBD because the proposal does not define hosting or service expectations.
-
-### 5.6 Maintainability and compatibility
-
-**NFR-050:** The implementation should use consistent naming, modular organization, and version control suitable for a course project.
-
-**NFR-051:** The application shall be tested in the browsers and versions agreed for demonstration.
-
-**NFR-052:** Dependencies, setup instructions, and required environment configuration should be documented in the repository.
-
-### 5.7 Privacy
-
-**NFR-060:** Access to financial and audit information shall be restricted to authorized users.
-
-**NFR-061:** Development and testing should use anonymized sample records rather than unnecessary real financial or personal information.
-
-## 6. Data requirements
-
-### 6.1 Conceptual data entities
-The following entities describe the conceptual information that may be required. This section is not a final database schema.
-
-| Entity | Description | Candidate data (validate) |
-|---|---|---|
-| User | Account and assigned permissions | User ID, display name, login, role, status |
-| Office/Site | Organizational access boundary | ID, name, parent relationship if needed |
-| Project | Project identity and status | ID, name, site/office, dates, status |
-| Cost record | A recorded project cost | ID, project, category, date, amount, description, creator |
-| Budget | Budget for a defined project scope/period | ID, project/scope, period, amount, status |
-| Stock item / stock record | Item and its stock information | ID, item name/code, unit, quantity, location |
-| Bill record | Bill information | ID/reference, date, amount, project/cost association, attachment reference if approved |
-| Audit event | Trace of relevant user actions | ID, actor, action, target record, timestamp, change summary |
-| Archive state | Active/archive status | Status, archived by, archived at, reason if required |
-
-### 6.2 Data validation
-- Mandatory fields must be identified for each entity before implementation.
-- Amount and quantity fields must use agreed numeric precision and validation rules.
-- Date formats and timezone behavior must be consistent.
-- Currency and rounding rules must be confirmed.
-- Referential integrity between projects, costs, bills, and sites must be enforced where relationships are adopted.
-- Duplicate detection criteria must be defined without assuming that similar values always indicate a duplicate.
-
-### 6.3 Data retention
-Archived-record retention, backup retention, and permanent deletion rules are TBD. Ordinary user workflows shall not permanently erase records where the archive requirement applies.
-
-## 7. Business rules
-
-**BR-001:** Access to protected functions shall be based on the user's assigned role.
-
-**BR-002:** Access to records shall respect the user's authorized office/site scope.
-
-**BR-003:** The viewer role is intended to be read-only; confirm the exact restrictions before implementation.
-
-**BR-004:** Ordinary record removal shall use archive/soft-delete behavior rather than permanent deletion.
-
-**BR-005:** Relevant edits and archive actions shall be traceable.
-
-**BR-006:** Cost and budget summaries shall use approved rules for date range, currency, record status, and inclusion of corrected or archived records.
-
-**BR-007:** Stock balances shall follow the confirmed stock transaction model.
-
-**BR-008:** Bill fields, bill-to-cost relationships, and supporting-file behavior shall follow the approved bill workflow.
-
-**BR-009:** The system shall not show cross-site summaries to users unless their permissions explicitly allow it.
-
-## 8. Use cases
-
-### UC-01: Enter a cost
-- **Actor:** Operator.
-- **Precondition:** Authenticated user has permission for the project/site.
-- **Trigger:** User selects the cost-entry function.
-- **Main flow:** Select project/site; enter required cost details; validate; save; show confirmation.
-- **Alternatives:** Invalid fields are explained; unauthorized scope is rejected; suspected duplicate warning is displayed if implemented.
-- **Postcondition:** Cost record is stored and relevant action history is retained.
-- **Related requirements:** FR-020 to FR-025, FR-060 to FR-063, FR-070 to FR-072.
-
-### UC-02: Review budget and cost
-- **Actor:** Authorized management user or viewer.
-- **Precondition:** User can view the selected project.
-- **Main flow:** Select project and agreed period; view budget and recorded cost summary.
-- **Alternatives:** If no budget exists, the system indicates that comparison is unavailable.
-- **Postcondition:** No record is changed.
-- **Related requirements:** FR-030 to FR-033, FR-080 to FR-081.
-
-### UC-03: Record and retrieve a bill
-- **Actor:** Operator.
-- **Precondition:** User has permission for the relevant project/site.
-- **Main flow:** Enter required bill information; validate; save; search and retrieve the record later.
-- **Alternatives:** Invalid fields are rejected; duplicate-warning behavior follows the approved rule.
-- **Postcondition:** Bill record is available to authorized users and relevant changes are traceable.
-- **Related requirements:** FR-050 to FR-054.
-
-### UC-04: Maintain stock information
-- **Actor:** Authorized operator or stock staff.
-- **Precondition:** User has access to the relevant site.
-- **Main flow:** View or enter the agreed stock record/transaction; validate; save; review updated information.
-- **Alternatives:** Invalid quantity or unauthorized site access is rejected.
-- **Postcondition:** Stock information is stored according to the confirmed stock model.
-- **Related requirements:** FR-040 to FR-043.
-
-### UC-05: Archive a record
-- **Actor:** Role authorized by the final policy.
-- **Precondition:** User is authenticated and permitted to archive the record.
-- **Main flow:** Select record; request archive; system records the action and marks the record archived; show confirmation.
-- **Alternatives:** Unauthorized action is rejected; repeated requests are handled safely.
-- **Postcondition:** Record is retained and distinguishable from active records.
-- **Related requirements:** FR-070 to FR-075.
-
-### UC-06: Administer user access
-- **Actor:** Administrator.
-- **Precondition:** Administrator is authenticated.
-- **Main flow:** Create or update account; assign role and office/site scope; save; system enforces the new permissions.
-- **Alternatives:** Invalid or unauthorized permission changes are rejected.
-- **Postcondition:** Account permissions reflect the saved configuration.
-- **Related requirements:** FR-001 to FR-006.
-
-## 9. Acceptance criteria overview
-
-The release should not be accepted until the agreed test cases demonstrate at least the following:
-
-1. Authentication protects all restricted functions.
-2. Admin, operator, and viewer permissions behave according to an approved permission matrix.
-3. Office/site restrictions apply consistently to direct record views, searches, and summaries.
-4. Authorized users can create and retrieve project, cost, budget, stock, and bill records included in the release.
-5. Invalid required fields are rejected with clear messages.
-6. Cost search and filtering work for the confirmed criteria.
-7. Budget comparisons match agreed calculations using a known test dataset.
-8. Archive behavior retains records and relevant history instead of permanently deleting them through ordinary workflows.
-9. Audit history identifies the actor, action, target, and timestamp for agreed event types.
-10. Core workflows remain usable at the agreed mobile and desktop viewport sizes.
-11. Any agreed performance target is verified in a documented test environment.
-12. Unresolved TBD items that affect released functionality are decided or explicitly excluded.
-
-## 10. Traceability matrix
-
-| Proposal statement / concern | SRS coverage |
+| Entry point documented in R | Purpose / linked requirements |
 |---|---|
-| Track costs, budgets, stock, and bills | FR-020–025, FR-030–033, FR-040–043, FR-050–054 |
-| Multiple tally books and spreadsheets | Section 1.4, FR-010–013, FR-020–023 |
-| Duplicate or lost cost entries | FR-021, FR-025, NFR-010 |
-| Editing overwrites prior information | FR-024, FR-070–075, NFR-011 |
-| Difficult cost filtering | FR-023 |
-| No real-time picture across offices/sites | FR-060–063, FR-080–081 |
-| Missed bills and unclear responsibility | FR-050–054, FR-070–073 |
-| Admin/operator/viewer access | FR-001–006 |
-| Soft deletion/archive | FR-070–075, BR-004 |
-| Multi-office data separation | FR-060–063, BR-002, BR-009 |
-| Mobile-friendly site use | UIR-04, FR-090–093, NFR-020–022 |
+| /login, /modules, /construction/ | Authentication and module entry; FR-001–FR-003 |
+| /construction/admin-dashboard, /construction/operator-dashboard, /construction/viewer-dashboard | Role dashboards; FR-011 |
+| /construction/add-project, /construction/view-projects | Project ledger; FR-006 |
+| /construction/add-cost, /construction/view-costs | Cost entry, review and report/export workflow; FR-007, FR-012 |
+| /construction/dropdown-options, /construction/audit-log | Category administration and history; FR-009–FR-010 |
+| /register, /account/profile, /account/change-password | User/account management; FR-004–FR-005 |
 
-## 11. Open issues and TBD register
+These URLs describe navigation, not a public API or permission matrix. The system shall use clear field labels, actionable validation feedback and distinguishable operation results (**D**, FR-019). Core mobile use is required by P; exact viewports and accessibility target are D-06. No accessibility certification is asserted.
 
-| ID | Decision required | Why it matters |
+### 3.2 Software, communications and hardware interfaces
+
+The browser communicates with the Flask application over web requests. SQLAlchemy/database configuration and migrations support persistence. Redis can support cache/rate-limit storage. The backup script invokes PostgreSQL tooling. Reports produce PDF/Excel and, for large exports, ZIP files. No REST API contract, banking/accounting integration, scanner, specialized device or bill-upload interface is source-confirmed.
+
+The system shall apply the same approved authorization rules to UI and direct requests (**D** operationalization of FR-002/FR-016). Security controls must remain effective when controls are hidden in the UI.
+
+## 4. Functional requirements
+
+Each acceptance check is a planned verification scenario, not a reported result. “Authorized” depends on D-01 and, for office scope, D-08. Features marked “implementation unverified” must not be represented as delivered.
+
+### FR-001 — Authentication
+
+**Requirement:** The system shall authenticate users before access to protected functions and provide logout.
+
+**Evidence:** P §4; R Features, Main URLs. **Priority:** Must.
+
+**Acceptance:** Valid login grants a session; invalid login does not; a logged-out request cannot access protected records.
+
+### FR-002 — Roles
+
+**Requirement:** The system shall enforce viewer, operator and admin authorization on protected operations.
+
+**Evidence:** P §4; R Features. **Priority:** Must.
+
+**Acceptance:** Attempt permitted and forbidden operations using each role; forbidden direct requests cause no data change.
+
+### FR-003 — Module access
+
+**Requirement:** The system shall enforce assigned Construction module access through the module hub.
+
+**Evidence:** R Features, Structure. **Priority:** Must.
+
+**Acceptance:** An assigned user enters Construction; an unassigned user is denied both hub entry and a direct module request.
+
+### FR-004 — User administration
+
+**Requirement:** The system shall provide authorized user management and module assignment, retaining a separate super-admin flag.
+
+**Evidence:** R Features, Structure, Main URLs. **Priority:** Must.
+
+**Acceptance:** An authorized administrator changes a test assignment; access follows it. Exact admin versus super-admin powers require D-01.
+
+### FR-005 — Account maintenance
+
+**Requirement:** The system shall provide profile and password-change functions for authenticated users.
+
+**Evidence:** R Structure, Main URLs. **Priority:** Should.
+
+**Acceptance:** A user accesses their profile and changes their password; password policy and reset flow require D-01.
+
+### FR-006 — Project registry
+
+**Requirement:** The system shall maintain project records with firm/tender details, work order year, budget, status and completion date.
+
+**Evidence:** P §§1–2; R Features. **Priority:** Must.
+
+**Acceptance:** Create and retrieve a project with those fields; validate mandatory-field rules after D-02 is resolved.
+
+### FR-007 — Cost entry
+
+**Requirement:** The system shall support cost entry for running projects and a late-cost workflow for completed projects.
+
+**Evidence:** P §§1–2; R Features. **Priority:** Must.
+
+**Acceptance:** Record a running-project cost and a completed-project late cost; verify the workflow distinction and saved project association.
+
+### FR-008 — Controlled corrections
+
+**Requirement:** The system shall support edit, void and restore workflows with password confirmation and audit snapshots.
+
+**Evidence:** P §4; R Features. **Priority:** Must.
+
+**Acceptance:** Correct, void and restore a test record; check password confirmation, retained snapshots and resulting active record state.
+
+### FR-009 — Audit review
+
+**Requirement:** The system shall provide authorized review of record history through the audit hub.
+
+**Evidence:** P §§2,4; R Features, Main URLs. **Priority:** Must.
+
+**Acceptance:** A permitted reviewer finds a correction and its snapshot; an unauthorized request cannot retrieve history. Audit fields require D-03.
+
+### FR-010 — Managed categories
+
+**Requirement:** The system shall provide managed project-sector and cost-type dropdown options.
+
+**Evidence:** R Features, Main URLs. **Priority:** Should.
+
+**Acceptance:** An authorized change appears in the relevant form; behavior for options already in use requires D-02.
+
+### FR-011 — Financial dashboards
+
+**Requirement:** The system shall provide financial dashboards for the documented roles.
+
+**Evidence:** P §5; R Features, Main URLs. **Priority:** Must.
+
+**Acceptance:** Compare each role dashboard against a known authorized dataset. Exact financial formulas require D-04.
+
+### FR-012 — Filtered reporting
+
+**Requirement:** The system shall provide filtered cost reporting and PDF/Excel exports.
+
+**Evidence:** P §2; R Features. **Priority:** Must.
+
+**Acceptance:** Export a known filtered dataset in both formats and reconcile its included rows and totals. Filter set requires D-04.
+
+### FR-013 — Large exports
+
+**Requirement:** The system shall support ZIP packaging for very large report exports.
+
+**Evidence:** R Features. **Priority:** Should.
+
+**Acceptance:** Exercise the configured large-export threshold and inspect the ZIP. Threshold and resource limits require D-05.
+
+### FR-014 — Language support
+
+**Requirement:** The system shall provide English and Bangla UI translations using the documented JSON resources.
+
+**Evidence:** R Features, Structure. **Priority:** Should.
+
+**Acceptance:** Review core screens in both languages; translation completeness and export language expectations require D-06.
+
+### FR-015 — Database backup
+
+**Requirement:** The system shall provide manual timestamped PostgreSQL custom-format dumps under backups/database/ using the backup script.
+
+**Evidence:** R Database Backups. **Priority:** Must.
+
+**Acceptance:** Run the script against a disposable PostgreSQL instance with pg_dump available and verify a readable dump; restoration acceptance requires D-07.
+
+### FR-016 — Office separation
+
+**Requirement:** The system shall separate office/site data within centralized access according to an approved organizational access policy.
+
+**Evidence:** P §4; implementation unverified. **Priority:** Must.
+
+**Acceptance:** After D-08, test two office-scoped accounts against list, detail, update, summary and export requests; no unauthorized records may leak.
+
+### FR-017 — Stock
+
+**Requirement:** The system shall track stock according to an approved inventory model.
+
+**Evidence:** P §1; implementation unverified. **Priority:** Must.
+
+**Acceptance:** Blocked by D-09: agree item, unit, location and movement rules, then demonstrate entry, retrieval and balance reconciliation.
+
+### FR-018 — Bills
+
+**Requirement:** The system shall track bill records according to an approved bill lifecycle and project/cost relationship.
+
+**Evidence:** P §§1–2; implementation unverified. **Priority:** Must.
+
+**Acceptance:** Blocked by D-10: agree fields and lifecycle, then create and retrieve a bill and trace a correction.
+
+### FR-019 — Input integrity
+
+**Requirement:** The system shall reject invalid required input without partially saving the requested business change.
+
+**Evidence:** D; derived from P §§2–3. **Priority:** Must.
+
+**Acceptance:** Submit missing, malformed and inconsistent values; verify actionable feedback and unchanged persistent business data.
+
+### FR-020 — Summary integrity
+
+**Requirement:** The system shall apply approved cost-inclusion and rounding rules consistently to ledgers, dashboards and exports.
+
+**Evidence:** D; derived from P §3. **Priority:** Must.
+
+**Acceptance:** Use the same known fixture before and after edit/void/restore; reconcile every affected total using D-04 rules.
+
+## 5. Data requirements and business rules
+
+### 5.1 Logical information
+
+| Information | Required / documented basis | Unverified details |
 |---|---|---|
-| TBD-01 | Confirm one firm/multiple offices versus multi-firm tenancy | Determines data model and access boundaries |
-| TBD-02 | Define project, cost, budget, stock, and bill mandatory fields | Needed for forms, validation, and testing |
-| TBD-03 | Define cost categories, currency, tax, and rounding rules | Needed for accurate totals |
-| TBD-04 | Define budget scope, period, and comparison formula | Needed for budget summaries |
-| TBD-05 | Decide stock current-balance versus transaction-history model | Affects stock behavior and integrity |
-| TBD-06 | Decide bill attachments versus metadata-only records | Affects storage and interface requirements |
-| TBD-07 | Approve role-permission matrix, including edit/archive/restore/audit permissions | Required for security testing |
-| TBD-08 | Define office/site sharing and management visibility | Required for cross-site access |
-| TBD-09 | Define audit events, change detail, and retention period | Required for accountability |
-| TBD-10 | Decide duplicate matching rules | Prevents both duplicates and false warnings |
-| TBD-11 | Confirm reports, filters, and export formats | Determines dashboard/report scope |
-| TBD-12 | Confirm offline use, performance, availability, backup, and recovery expectations | Not specified in proposal |
-| TBD-13 | Confirm browser support and accessibility target | Needed for compatibility and UI testing |
+| Account | Roles, assigned modules, super-admin flag (R) | Login constraints, lifecycle, reset and office membership D-01/D-08 |
+| Project | Firm/tender details, work order year, budget, status, completion date (R) | Required fields, field types/limits and transitions D-02 |
+| Cost | Project expenditure, running and late entry (R) | Mandatory fields, date/amount/category constraints and duplicate criteria D-02/D-12 |
+| Categories | Sector and cost-type dropdowns (R) | Deactivation and historical usage D-02 |
+| History | Audit snapshots and edit/void/restore (R) | Exact event coverage, actor/time metadata, retention D-03 |
+| Office/site | Separated centralized records (P) | Data ownership and sharing D-08; implementation unverified |
+| Stock | Tracking intent (P) | Units, locations, movement/balance rules D-09; implementation unverified |
+| Bill | Tracking intent (P) | Metadata, attachment and lifecycle D-10; implementation unverified |
 
-## 12. Appendices
+This table specifies information needs rather than a physical schema. It does not assert an existing Office, Stock, Bill or separate Budget table.
 
-### Appendix A — Suggested minimum role matrix (proposed; approval required)
+### 5.2 Integrity and lifecycle rules
 
-| Operation | Administrator | Operator | Viewer |
+- BR-01: Authenticate and check role/module permissions before protected access (R).
+- BR-02: Distinguish running-project entry from completed-project late costs (R); exact transition/eligibility rules D-02.
+- BR-03: Preserve controlled edit/void/restore history with password confirmation (P/R); record coverage and retention D-03.
+- BR-04: Apply office scope consistently across detail, list, update, aggregate and export paths (P intent; detailed rule D).
+- BR-05: Reconcile ledger/dashboard/export calculations using one approved policy (D, FR-020).
+- BR-06: Exclude private runtime data and generated artifacts from Git (R).
+
+Currency, monetary precision, rounding, date inclusivity, timezone presentation, null/zero budgets, negative amounts, void inclusion, duplicate criteria and conflicting-edit rules are unresolved. They require D-02/D-04/D-12 and must not be inferred from the author's location.
+
+### 5.3 Retention, migration and recovery
+
+Ordinary business correction shall preserve traceability consistent with FR-008. No permanent-purge permission or legal retention period is established. Migrations govern schema changes. Manual backups are documented; automation, encryption, retention, offsite storage and successful restoration are not verified. Those recovery controls require D-07 rather than an assumed guarantee.
+
+## 6. Non-functional requirements
+
+### NFR-001 — Security controls
+
+**Requirement:** The system shall provide CSRF protection, login rate limiting, secure production cookie settings and security headers.
+
+**Evidence:** R Features, Production Environment.
+
+**Verification:** Verify CSRF rejection, configured rate-limit enforcement, production cookie flags and response headers.
+
+### NFR-002 — Deployment configuration
+
+**Requirement:** Production shall require SECRET_KEY, DATABASE_URL and Redis or another persistent rate-limit backend; secrets shall be supplied outside source control.
+
+**Evidence:** R Production Environment.
+
+**Verification:** Start without required values and check safe rejection; start with a valid isolated environment. Do not expose secret values.
+
+### NFR-003 — Mobile usability
+
+**Requirement:** Core entry and review workflows shall remain usable on mobile devices.
+
+**Evidence:** P §4; implementation unverified.
+
+**Verification:** D-06: choose devices/viewports and complete login, entry, filtering and correction without inaccessible controls.
+
+### NFR-004 — Operational logging
+
+**Requirement:** The system shall maintain separate app, access, security, audit and error logging.
+
+**Evidence:** R Features.
+
+**Verification:** Trigger representative events in a disposable environment and inspect their intended destinations; log retention/redaction policy is D-03/D-07.
+
+### NFR-005 — Schema maintenance
+
+**Requirement:** Database schema changes shall use Flask-Migrate/Alembic migrations.
+
+**Evidence:** R Structure, Production Environment.
+
+**Verification:** Upgrade a disposable database using documented migration commands and verify expected schema.
+
+### NFR-006 — Repository hygiene
+
+**Requirement:** The public repository shall exclude secrets, private databases, logs, uploads, generated reports, backups and real project data.
+
+**Evidence:** R Introduction, Security Note.
+
+**Verification:** Review tracked changes and ignore rules before publication; fixtures must be synthetic.
+
+### NFR-007 — Performance and availability
+
+**Requirement:** The system shall meet agreed response-time, capacity and availability targets.
+
+**Evidence:** D; unverified, blocked by D-11.
+
+**Verification:** No numerical target is source-confirmed. Agree dataset, concurrency, measurement method, percentile and limit before load testing.
+
+### NFR-008 — Recoverability
+
+**Requirement:** The system shall meet agreed recovery-point and recovery-time objectives.
+
+**Evidence:** D; unverified, blocked by D-07.
+
+**Verification:** Restore a test dump and measure recovered completeness and elapsed recovery time against approved objectives.
+
+### NFR-009 — Transaction integrity
+
+**Requirement:** A rejected business operation shall not leave a partial change or inconsistent financial summary.
+
+**Evidence:** D; unverified.
+
+**Verification:** Inject a controlled save failure and verify rollback and summary consistency; concurrent-edit policy requires D-12.
+
+### 6.1 Additional unverified quality decisions
+
+No source defines response-time seconds, uptime percentage, concurrent-user count, recovery interval, supported browser versions or accessibility level. These are pending decisions rather than numerical promises. Performance acceptance must define workload and dataset before limits. Bilingual UI resources do not establish translated exports or full translation coverage.
+
+## 7. Verification and acceptance plan
+
+| Test group | Requirement coverage | Planned method / required evidence |
+|---|---|---|
+| V-01 Access | FR-001–FR-005, FR-016 | Role/module/office fixtures; positive and denied direct requests; no unauthorized changes or disclosure |
+| V-02 Ledger | FR-006–FR-007, FR-010, FR-019 | Synthetic project/cost examples, running/late flow and invalid inputs |
+| V-03 Accountability | FR-008–FR-009, FR-020 | Password-confirmed edit/void/restore; preserved history; reconciled totals |
+| V-04 Reporting | FR-011–FR-013, FR-020 | Known filtered dataset; PDF/Excel rows/totals; configured ZIP boundary |
+| V-05 Language/device | FR-014, NFR-003 | English/Bangla core-task review on approved devices |
+| V-06 Operations | FR-015, NFR-001–NFR-002, NFR-004–NFR-006, NFR-008–NFR-009 | Safe configuration checks, logs, migrations, backup/restore and failure rollback |
+| V-07 Proposal gaps | FR-016–FR-018 | Approved scope/stock/bill models; isolation and lifecycle scenarios |
+| V-08 Service levels | NFR-007 | Agreed workload and measured targets after D-11 |
+
+Unit/integration tests, scenario demonstrations and document inspections may provide evidence; no test pass is asserted here. Stock/bill acceptance and numerical service-level tests are blocked until their requirements are elaborated. R-only documentation cannot substitute for implementation testing.
+
+Release acceptance requires approved scope, resolved critical decisions, passing agreed tests, documented exceptions and reviewer approval. A partial ledger demonstration cannot by itself close proposal obligations for stock, bills and office separation.
+
+## 8. Requirements traceability and unresolved issues
+
+### 8.1 Source-to-requirement map
+
+| Source concern | Requirements |
+|---|---|
+| P §1 cost, budget, stock, bills | FR-006–FR-007, FR-011, FR-017–FR-018 |
+| P §§2–3 filtering, mistakes and accountability | FR-008–FR-009, FR-012, FR-019–FR-020 |
+| P §4 roles and archived history | FR-001–FR-002, FR-008–FR-009 |
+| P §4 office separation and mobile use | FR-016, NFR-003 |
+| P §5 centralized project visibility | FR-006, FR-011, FR-016 |
+| R Features / Main URLs / Structure | FR-001–FR-014, NFR-001, NFR-004–NFR-005 |
+| R Production Environment / Backups / Security Note | FR-015, NFR-002, NFR-005–NFR-006 |
+| Derived controls / unverified quality targets | FR-019–FR-020, NFR-007–NFR-009 |
+
+Functional sections provide item-level sources, including R subsection and proposal section. Analysis use cases provide scenario-level mappings.
+
+### 8.2 Decision register
+
+| Decision | Unverified detail / scope gap | Proposed decision owner | Resolution evidence |
 |---|---|---|---|
-| View records within authorized scope | Yes | Yes | Yes |
-| Create cost/bill/stock records | Configurable | Yes, within scope | No |
-| Edit business records | Configurable | Within approved policy | No |
-| Archive records | Yes, proposed | TBD | No |
-| Manage users and roles | Yes | No | No |
-| View audit history | Yes, proposed | TBD | No by default |
-| View cross-office summaries | Only if authorized | Only if authorized | Only if authorized |
+| D-01 | Exact role/action matrix, super-admin powers, account lifecycle and password policy | Owner / administrator | Approved permission matrix and account scenarios |
+| D-02 | Mandatory fields, validation limits, project states, completion-date rules and category retirement | Operator / administrator | Reviewed field catalogue and state transitions |
+| D-03 | Audit event coverage, actor/time fields, history retention and restore permissions | Owner / administrator | Audit policy and sample history |
+| D-04 | Currency, precision, rounding, budget formula, void inclusion, report filters and cache freshness | Accountant / management | Hand-calculated reconciled examples |
+| D-05 | Large-export threshold, chunking, maximum size and timeout behavior | Developer / supervisor | Configuration and representative export test |
+| D-06 | Supported browsers, mobile viewports, language selection and translation coverage | Site staff / supervisor | Reviewed device and language checklist |
+| D-07 | Backup frequency, retention, storage protection, restore process, RPO and RTO | System owner | Approved recovery policy and restore rehearsal |
+| D-08 | Office/site model, assignments and authorized cross-office visibility | Firm owner | Approved scope matrix; isolation tests |
+| D-09 | Stock quantities versus movement ledger, units, locations and adjustments | Store staff / owner | Approved inventory scenarios and data model |
+| D-10 | Bill metadata, attachments, statuses, duplication and project/cost links | Accountant / owner | Approved bill lifecycle and sample records |
+| D-11 | Concurrency, workload, response-time and availability targets | Owner / developer | Agreed workload and measurable acceptance limits |
+| D-12 | Duplicate warning and conflicting-update strategy | Operator / developer | Approved duplicate/concurrent-edit scenarios |
 
-This is a starting proposal, not a confirmed authorization policy. The final matrix must be approved before implementation.
+All owners above are proposed stakeholder categories; no consultation or approval is implied.
 
-### Appendix B — Suggested test data
-Use fictional project names, dates, amounts, stock items, bills, users, and offices. Include:
-- Two offices/sites with different user permissions.
-- At least two projects with separate budgets.
-- Several cost categories and dates.
-- One missing-budget case.
-- Active and archived records.
-- A suspected duplicate and a legitimate similar transaction.
-- Stock records with valid and invalid quantities.
-- Bill records with complete and incomplete required fields.
+## 9. Change control and approval
 
-### Appendix C — Change history
+A change proposal shall identify affected IDs, source/rationale, priority, scope and security/accounting impacts, revised acceptance checks and approving reviewer (**D**, proposed governance). Update the elicitation findings, analysis and SRS together. Preserve proposal gaps until explicit acceptance or approved scope change.
 
-| Version | Date | Description |
+| Reviewer category | Decision | Status |
 |---|---|---|
-| 1.0 | 16 October 2026 | Initial SRS draft based on the ConstructFlow project proposal; assumptions and open issues identified |
+| Firm representative | Business policy, office boundaries, stock/bills and financial rules | Pending; representative not identified |
+| Supervisor | Academic scope and assessment suitability | Pending |
+| Student developer | Feasibility, implementation mapping and test evidence | Prepared; validation pending |
 
-## 13. Approval
-
-This document is a proposed requirements baseline and requires review. Approval should be recorded after the project supervisor and, if available, representative stakeholders validate the scope, priorities, and TBD decisions.
-
-| Reviewer | Name / role | Status / date |
-|---|---|---|
-| Project author | Toufikur Rahman | Pending |
-| Course instructor / supervisor | Md Abu Sayed, Lecturer, CSE Department | Pending |
-| Representative user / stakeholder | TBD | Pending |
+**Version history:** 1.0 — initial proposal-based draft. 1.1 — reconciled with README, unified requirement IDs, preserved proposal gaps, added source/evidence labels and planned verification. No stakeholder sign-off or implementation verification is implied.

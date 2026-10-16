@@ -1,196 +1,138 @@
-# ConstructFlow — Requirements Elicitation Document
+# Requirements Elicitation Document
 
-**Project:** ConstructFlow: A Web-Based Cost Tracking and Management System  
-**Course:** CSE 309 — Web Programming  
-**Institution:** Independent University, Bangladesh  
-**Prepared by:** Toufikur Rahman  
-**Status:** Initial draft — validate with stakeholders  
-**Version:** 1.0  
-**Date:** 16 October 2026
-
-## 1. Purpose
-
-This document describes how requirements for ConstructFlow will be discovered, clarified, recorded, and validated. It includes a selection process for elicitation techniques and explains why the selected approach fits the project.
-
-The source proposal identifies problems in small and mid-sized construction firms that rely on tally books and scattered spreadsheets: duplicate or lost cost entries, accidental overwrites, difficult filtering, poor visibility across sites/offices, and limited accountability for incorrect or missing bills. ConstructFlow is intended to centralize cost, budget, stock, bill, and project records while supporting role-based access, archived records/audit trails, multi-office data separation, and mobile-friendly use.
-
-**Important:** The proposal establishes the project direction, not every detailed requirement. Items marked *to validate* are working assumptions and must be confirmed with representative users or the course supervisor.
-
-## 2. Elicitation objectives
-
-- Understand current cost, budget, stock, bill, and project-record workflows.
-- Identify stakeholders, their goals, pain points, access needs, and reporting needs.
-- Define how admin, operator, and viewer roles differ.
-- Understand multi-office/site separation and what information may be shared.
-- Discover audit-history and soft-delete/archive expectations.
-- Identify usability, security, data-integrity, and mobile-use expectations.
-- Prioritize requirements for a feasible course project and establish acceptance criteria.
-- Resolve conflicting needs and obtain stakeholder confirmation.
-
-## 3. Scope and boundaries
-
-### In scope for elicitation
-- Project and site records.
-- Cost/expense entry, categorization, searching, filtering, and summaries.
-- Budgets and comparison of recorded costs against budgets.
-- Stock/inventory records and stock movement expectations.
-- Bills and supporting information, including missed-bill handling.
-- User roles and permissions (admin, operator, viewer).
-- Multi-office/site data separation with centralized management.
-- Audit history and soft deletion/archive behavior.
-- Dashboard/reporting, responsive interface, and data validation.
-- Operational constraints, security, and acceptance criteria.
-
-### Out of scope unless stakeholders approve a change
-- Full enterprise ERP, payroll, tax filing, banking/payment processing, supplier marketplaces, automated accounting integrations, and native mobile apps.
-- Specific technology choices, database design, and deployment architecture are implementation decisions unless they impose a requirement.
-
-## 4. Stakeholders and information needs
-
-| Stakeholder | Likely interests / questions to investigate |
+| Document control | Value |
 |---|---|
-| Firm owner / management | Project cost visibility, budget overruns, cross-site summaries, accountability, reports |
-| Administrator | User creation, role assignment, office/site configuration, archive and audit review |
-| Operator / accountant / site staff | Fast, low-error entry of costs, bills, and stock activity; corrections; mobile usability |
-| Viewer / project manager | Read-only access to permitted projects, dashboards, and reports |
-| Store / inventory staff | Stock item records, quantities, receipts/issues, low-stock visibility (to validate) |
-| Multiple offices / site representatives | Which records are local, which are shared, and how access is separated |
-| Instructor / project supervisor | Academic scope, expected deliverables, feasibility, evaluation criteria |
-| Developer / tester | Clear, testable requirements, constraints, edge cases, and priorities |
+| Project | ConstructFlow — Construction Ledger and Cost Management |
+| Author | Toufikur Rahman · ID 2420826 · Section 01 |
+| Course / institution | CSE 309 — Web Programming · Independent University, Bangladesh |
+| Submitted to | Md Abu Sayed, Lecturer, Department of Computer Science and Engineering |
+| Version / date | 1.1 · 16 October 2026 |
+| Status | Submission-ready source-based specification; stakeholder approval pending |
 
-These roles are inferred from the proposal and are not confirmation that every firm uses these exact job titles.
 
-## 5. Elicitation technique selection process
+## 1. Purpose and problem context
 
-### 5.1 Candidate techniques
+This document records the evidence available for ConstructFlow and defines the selection, execution and validation process for further elicitation. The proposal describes scattered tally books/spreadsheets, duplicate or lost costs, overwritten edits, difficult filtering, missed bills, and weak accountability across offices. The objective is reliable centralized construction records with controlled access and traceable changes.
 
-Scores below use a 1–5 scale, where 5 is most favorable for this project. Weighted score = score × weight; maximum total is 500. Scores are a reasoned planning assessment, not results from completed field research.
+## Source and evidence register
 
-| Criterion | Weight | Interviews | Questionnaire | Observation / workflow walkthrough | Document analysis | Prototype review |
-|---|---:|---:|---:|---:|---:|---:|
-| Depth of workflow discovery | 25 | 5 | 2 | 5 | 3 | 4 |
-| Ability to clarify ambiguity | 20 | 5 | 2 | 4 | 2 | 4 |
-| Reach across roles/sites | 15 | 2 | 5 | 3 | 2 | 3 |
-| Low cost / feasibility | 15 | 4 | 5 | 3 | 5 | 3 |
-| Evidence of actual work | 15 | 3 | 1 | 5 | 4 | 2 |
-| Early usability feedback | 10 | 2 | 1 | 3 | 1 | 5 |
-| **Weighted total / 500** | **100** | **390** | **260** | **405** | **285** | **350** |
+| Code | Source | Authority and limits |
+|---|---|---|
+| P | *CSE309_project_proposal.pdf*, Toufikur Rahman, submitted 24 September 2026, pp. 1–2 | Primary business scope. Section 1 names cost, budget, stock and bills; sections 2–3 describe operational problems; section 4 identifies roles, archive/history, office separation and mobile use; section 5 describes expected outcomes. |
+| R | [Repository README](https://github.com/toufikur-r38/ConstructFlow/blob/f2af045eaea023b78e60110c45085b08eae31d3f/README.md), reviewed 16 October 2026 | Current documented technical/feature baseline. README blob: `4f7e2cb6b09a4f601c511ce4344a04473f17698f`. Descriptions are not proof of successful runtime tests. |
 
-### 5.2 Selected approach: lightweight triangulation
+**Evidence labels:** **P** = explicit proposal intent; **R** = README-documented capability or constraint; **D** = derived requirement, unverified and awaiting validation. **P / implementation unverified** preserves a proposal obligation absent from the README. Any detailed behavior beyond the cited source is explicitly labeled D. No interviews, observations, stakeholder approvals, production tests, or performance measurements are claimed.
 
-Select a combination of:
-1. **Semi-structured interviews** with representative management, administrator, operator, and viewer users.
-2. **Workflow walkthroughs / observation** using a sample or anonymized cost ledger, bill, stock record, and current spreadsheet workflow where access is permitted.
-3. **Document analysis** of existing forms, spreadsheets, bill formats, and reports, if stakeholders can share them safely.
-4. **Questionnaire** only when input from more users or multiple offices is needed and interviews are impractical.
-5. **Low-fidelity prototype review** after initial requirements are drafted, to validate navigation and data-entry assumptions.
+The proposal governs intended business scope; the README governs the documented implementation baseline. A missing README feature is a gap to resolve, not permission to silently remove it from scope. Priorities are analyst recommendations, not stakeholder decisions.
 
-The table gives workflow walkthroughs the highest score because the core problem concerns real operational practices and record errors. Interviews score nearly as high because users must explain permissions, exception cases, and accountability needs that may not be visible by observation. Triangulation reduces the risk of relying on one person's recollection or one sample document.
+## 2. Stakeholders and information needs
 
-### 5.3 Justification
+| Stakeholder category | Needed information | Evidence status |
+|---|---|---|
+| Firm owner / management | Cost visibility, budgets, office boundaries, reporting priorities | Inferred from P §§2–5; representative not yet consulted |
+| Admin / system owner | Roles, module assignment, super-admin limits, audit and recovery | Roles in P; technical distinctions in R; policy unverified |
+| Operator / accountant | Entry fields, late costs, correction, bills and reconciliation | Role in P; specific job mapping unverified |
+| Viewer / project manager | Permitted summaries and exports | Viewer role in P; job mapping unverified |
+| Site / store staff | Mobile conditions, stock units and movement | Site use in P; store role inferred |
+| Course supervisor / developer | Scope feasibility and review criteria | Academic context in P; acceptance approval pending |
 
-- **Interviews:** permit follow-up questions about duplicates, corrections, missing bills, approval, and reporting.
-- **Walkthroughs:** expose the real sequence of entry, review, correction, and reconciliation tasks.
-- **Document analysis:** helps identify actual fields, naming conventions, and report layouts without inventing them.
-- **Questionnaire:** efficiently checks whether needs differ across sites, but is weak for exploring complex workflows.
-- **Prototype review:** allows non-technical users to react to a concrete screen before implementation.
+## 3. Elicitation approach selection
 
-A full survey-only approach is not recommended: it could miss edge cases and the reasons behind current workarounds. A prototype-only approach is also insufficient because it risks validating a design before the underlying business rules are understood.
+### 3.1 Selection process
 
-## 6. Planned elicitation activities
+1. Identify uncertainty from P and compare it with R.
+2. Evaluate candidate methods for workflow depth, clarification, feasibility and mobile-usability feedback.
+3. Select complementary methods rather than interpret a single score as the entire process.
+4. Reassess after initial sessions; retain the source and decision for every requirement.
 
-| Step | Activity | Participants / evidence | Output |
+The following 1–5 ratings are analyst planning judgments, not research results. Weights total 100%; higher scores are better. Weighted score = sum(weight × rating) / 100.
+
+| Method | Workflow depth 35% | Clarification 30% | Feasibility 20% | Usability feedback 15% | Score / 5 |
+|---|---:|---:|---:|---:|---:|
+| Semi-structured interview | 5 | 5 | 4 | 3 | 4.50 |
+| Guided workflow observation | 5 | 4 | 3 | 4 | 4.15 |
+| Proposal / README / form analysis | 3 | 2 | 5 | 1 | 2.80 |
+| Prototype review | 3 | 4 | 3 | 5 | 3.60 |
+| Questionnaire | 2 | 2 | 5 | 2 | 2.60 |
+
+### 3.2 Selection and justification
+
+Use document analysis first, then semi-structured interviews and guided workflow walkthroughs, followed by prototype review. Interviews rank highest because permission exceptions, missing bills and correction authority need follow-up discussion. Walkthroughs expose actual entry/reconciliation steps that recall may omit. Document analysis is immediately available and establishes evidence without inventing business rules. Prototype review makes mobile and bilingual interaction concrete for non-technical staff.
+
+Use a questionnaire only to compare practices across additional offices after terminology is established. It provides reach but cannot alone resolve accounting or access-policy ambiguity. Observation depends on permission and access to anonymized examples; if unavailable, record the limitation and use scenario walkthroughs without presenting them as observed work.
+
+## 4. Activities, completion status and outputs
+
+| Activity | Status | Output / next step |
+|---|---|---|
+| Read complete two-page proposal | Completed | Business scope and problem statements P |
+| Read current repository README | Completed | Feature/technology baseline R |
+| Compare proposal and README | Completed | Stock, bills and office-isolation gaps; decision register below |
+| Interview representative roles | Planned; not conducted | Notes with participant role, date, consent and unresolved questions |
+| Walk through ledger, correction, bill and stock examples | Planned; not conducted | Anonymized workflow and field catalogue |
+| Review mobile/bilingual screens | Planned; not conducted | Usability observations and revised requirements |
+| Resolve conflicts and validate specification | Pending | Decisions, priorities and approval record |
+
+## 5. Interview and walkthrough protocol
+
+Use one representative per available role, including two office/site perspectives where feasible. Record unavailable perspectives. Begin with the last real task rather than a feature wish list; request anonymized examples and obtain permission before recording.
+
+| Audience | Questions and evidence to request |
+|---|---|
+| Management | Which figures drive decisions? What defines budget overrun? Which offices may see each other? Reconcile a sample project summary. |
+| Admin | Who creates users and grants modules? How does super-admin differ? Who can edit, void, restore or inspect history? Demonstrate a disputed correction. |
+| Operator / accountant | Walk through a running cost and a late completed-project cost. Which fields are mandatory? What happens for a duplicate or missed bill? |
+| Viewer | Which details and exports are required? Is download allowed? What should a restricted user see? |
+| Store staff | Trace receipt, issue, adjustment and balance. Which units and locations matter? Are negative balances valid? |
+| Site staff | Demonstrate entry on the normal phone and connection. Which English/Bangla labels are unclear? |
+| System owner | Who performs and verifies backups? What loss and downtime are acceptable? Demonstrate recovery in a safe environment. |
+
+Walkthrough cases: add project → enter cost → filter/export → correct → void → restore → reconcile totals. Separately examine bill and stock scenarios and cross-office denied access; their implementation is unverified.
+
+## 6. Recording and validation method
+
+For each finding record an evidence ID, source/section or participant/date, original need, normalized requirement ID, priority, assumptions, acceptance check and decision owner. Never record a planned interview as a completed source.
+
+Review each requirement for necessity, atomic wording, consistency, feasibility and verifiability. Use the same FR/NFR IDs in the analysis and SRS. Resolve conflicts using confidentiality, accountability, operational frequency and course feasibility; management decides business policy and the supervisor reviews academic scope. Preserve unresolved disagreements in the decision log.
+
+## 7. Open decisions
+
+| Decision | Unverified detail / scope gap | Proposed decision owner | Resolution evidence |
 |---|---|---|---|
-| 1 | Review proposal and define scope | Project proposal, supervisor | Initial context and scope |
-| 2 | Identify and contact representative stakeholders | Management, admin, operators, viewers, site/store staff where available | Stakeholder list |
-| 3 | Conduct semi-structured interviews | One representative per available role; record notes with permission | Interview notes and needs |
-| 4 | Walk through existing workflows | Anonymized ledger/spreadsheet, bill, stock record, report | Current-state workflow and pain points |
-| 5 | Analyze sample documents | Forms and reports supplied voluntarily | Candidate data fields and report needs |
-| 6 | Consolidate and classify requirements | All elicitation evidence | Requirement catalogue |
-| 7 | Prioritize and resolve conflicts | Stakeholder review / supervisor feedback | Agreed priority and open questions |
-| 8 | Review low-fidelity screens and scenarios | Representative users, if available | Usability feedback and revised requirements |
-| 9 | Validate the baseline | Stakeholder walkthrough and sign-off where feasible | Approved or provisionally approved baseline |
+| D-01 | Exact role/action matrix, super-admin powers, account lifecycle and password policy | Owner / administrator | Approved permission matrix and account scenarios |
+| D-02 | Mandatory fields, validation limits, project states, completion-date rules and category retirement | Operator / administrator | Reviewed field catalogue and state transitions |
+| D-03 | Audit event coverage, actor/time fields, history retention and restore permissions | Owner / administrator | Audit policy and sample history |
+| D-04 | Currency, precision, rounding, budget formula, void inclusion, report filters and cache freshness | Accountant / management | Hand-calculated reconciled examples |
+| D-05 | Large-export threshold, chunking, maximum size and timeout behavior | Developer / supervisor | Configuration and representative export test |
+| D-06 | Supported browsers, mobile viewports, language selection and translation coverage | Site staff / supervisor | Reviewed device and language checklist |
+| D-07 | Backup frequency, retention, storage protection, restore process, RPO and RTO | System owner | Approved recovery policy and restore rehearsal |
+| D-08 | Office/site model, assignments and authorized cross-office visibility | Firm owner | Approved scope matrix; isolation tests |
+| D-09 | Stock quantities versus movement ledger, units, locations and adjustments | Store staff / owner | Approved inventory scenarios and data model |
+| D-10 | Bill metadata, attachments, statuses, duplication and project/cost links | Accountant / owner | Approved bill lifecycle and sample records |
+| D-11 | Concurrency, workload, response-time and availability targets | Owner / developer | Agreed workload and measurable acceptance limits |
+| D-12 | Duplicate warning and conflicting-update strategy | Operator / developer | Approved duplicate/concurrent-edit scenarios |
 
-No stakeholder interviews or observations are claimed to have already occurred. This is the proposed process.
+All owners above are proposed stakeholder categories; no consultation or approval is implied.
 
-## 7. Interview guide
+## 8. Risks and controls
 
-### Management / owner
-1. Which decisions must you make from project cost and budget information?
-2. How often do you need project-wise, site-wise, or office-wise summaries?
-3. What indicates that a project is over budget?
-4. Which reports are needed for internal review or audits?
-5. Who may view or correct financial records?
-
-### Administrator
-1. How should users, roles, offices, and sites be created and managed?
-2. Can a user belong to more than one office or project?
-3. Which actions require administrator privileges?
-4. Who can view archived records and audit history?
-5. What should happen when a user leaves the firm?
-
-### Operator / accountant / site staff
-1. Describe a typical cost or bill entry from start to finish.
-2. Which fields are essential and which are often unavailable at entry time?
-3. How are duplicate entries, mistakes, and missing bills handled today?
-4. What supporting documents or references must be retained?
-5. What device and network conditions are common at construction sites?
-6. Which searches and filters are used most frequently?
-
-### Stock / store staff (to validate)
-1. How are stock receipts, issues, adjustments, and balances recorded?
-2. Are units, suppliers, item codes, or minimum stock levels needed?
-3. Who can authorize or correct a stock adjustment?
-
-### Viewer / project manager
-1. What should be visible on a dashboard?
-2. Which projects or offices should you be able to access?
-3. Which reports should be exportable, if any?
-4. Should viewers be completely read-only, including comments or downloads?
-
-## 8. Validation and conflict resolution
-
-- Convert each finding into a uniquely identified, atomic requirement.
-- Trace every requirement to a proposal statement, elicitation finding, or explicitly labeled assumption.
-- Ask stakeholders to confirm the wording, priority, and acceptance condition.
-- Resolve conflicts by considering business risk, accountability, data confidentiality, frequency of use, and implementation feasibility.
-- Record unresolved items in an open-questions log rather than silently deciding them.
-- Review requirements against representative scenarios: entering a cost, correcting an entry, archiving a record, viewing a budget summary, recording stock movement, and accessing data across offices.
-
-## 9. Expected deliverables
-
-- Stakeholder and role list.
-- Interview notes and workflow diagrams, if activities are conducted.
-- Current-state problem summary.
-- Candidate data fields and reporting needs.
-- Prioritized, uniquely identified requirement catalogue.
-- Assumptions, constraints, risks, and open questions.
-- Reviewed baseline for the Requirements Analysis Document and SRS.
-
-## 10. Risks and mitigations
-
-| Risk | Mitigation |
+| Risk | Control |
 |---|---|
-| Only one role is consulted | Seek input from different role types; label unavailable perspectives |
-| Users describe desired features but omit exceptions | Use workflow walkthroughs and scenario-based follow-up questions |
-| Sensitive financial data is shared | Request anonymized examples and collect only necessary information |
-| Requirements grow beyond course scope | Prioritize a minimum viable feature set and record later ideas separately |
-| Different offices use different processes | Compare workflows and identify configurable versus standardized rules |
-| Assumptions are mistaken for confirmed facts | Mark assumptions explicitly and maintain an open-questions log |
+| README claims treated as tested behavior | Keep R evidence distinct from implementation verification |
+| Proposal features omitted because not documented in code baseline | Retain FR-016–FR-018 as explicit gaps |
+| One stakeholder represents every office | Compare roles/sites and label missing perspectives |
+| Sensitive bills or project data collected | Use anonymized examples and restrict notes |
+| Scope grows beyond course feasibility | Record release decisions; preserve proposal obligations pending explicit change |
+| Inconsistent terms or requirements | Shared identifiers, glossary and cross-document review |
 
-## 11. Open questions requiring confirmation
+## 9. Exit and approval criteria
 
-1. Is ConstructFlow intended for one firm with multiple offices, or multiple independent firms?
-2. What exact cost categories, budget periods, and budget-overrun rules are required?
-3. Does “stock” require only current quantities or full stock movement history?
-4. Must bills be uploaded as files, or is recording bill metadata sufficient?
-5. Are approval workflows required before costs or stock changes become final?
-6. Which reports and export formats are essential?
-7. Is offline data entry required at sites with unreliable connectivity?
-8. What retention period applies to archived records and audit history?
-9. Can records be edited after approval, and who can authorize corrections?
-10. What are the expected user volume, data volume, and performance targets?
+Elicitation is complete when critical decisions D-01–D-04 and D-08–D-10 have documented dispositions, role representatives have reviewed relevant scenarios, every accepted requirement has a source and acceptance check, and unresolved release risks have an accountable owner. No fixed interview count constitutes validation.
 
-## 12. Reference
+| Reviewer | Responsibility | Approval |
+|---|---|---|
+| Firm representative (to be identified) | Business scope, permissions and calculations | Pending |
+| Course supervisor | Academic scope and submission requirements | Pending |
+| Student developer | Feasibility and traceability | Prepared; approval not asserted |
 
-Rahman, Toufikur. *ConstructFlow: A Web-Based Cost Tracking and Management System for a Construction Firm to track their cost, budget, stock and bills.* CSE 309 Web Programming Project Topic Proposal, Independent University, Bangladesh, submitted 24 September 2026.
+Related documents: [Requirements Analysis](requirements-analysis.md) and [SRS](software-requirements-specification.md).
