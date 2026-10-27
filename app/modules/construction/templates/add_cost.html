@@ -27,14 +27,14 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="batch_entry" value="1">
                         <input type="hidden" name="project_id" value="{{ selected_project.id }}">
-                        <p class="small text-muted">{{ t('cost.grid_help') }} <span class="text-danger">*</span> {{ t('cost.required_help') }} {{ t('cost.date_default_help') }} {{ t('cost.conditional_remark') }}</p>
+                        <p class="small text-muted">{{ t('cost.grid_limit_short') }} <span class="text-danger">*</span> {{ t('cost.required_field') }}</p>
                         <div id="costErrors" class="alert alert-danger" role="alert" tabindex="-1" hidden></div>
                         <div class="table-responsive cost-entry-grid">
                             <table class="table table-bordered align-middle mb-0">
                                 <thead class="table-light"><tr>
                                     <th scope="col">SL</th>
                                     {% for label in ['cost.expense_date', 'cost.category', 'cost.quantity', 'cost.per_unit_rate_tk', 'cost.total_tk', 'cost.details_remarks'] %}
-                                    <th scope="col">{{ t(label) }}{% if label in ['cost.category', 'cost.quantity', 'cost.per_unit_rate_tk'] or (late_project and label == 'cost.details_remarks') %} <span class="text-danger" aria-label="{{ t('cost.required_field') }}">*</span>{% elif label == 'cost.details_remarks' %} <span class="text-danger" aria-label="{{ t('cost.conditional_remark') }}">*</span>{% endif %}</th>
+                                    <th scope="col">{{ t(label) }}{% if label in ['cost.category', 'cost.quantity', 'cost.per_unit_rate_tk'] %} <span class="text-danger" aria-label="{{ t('cost.required_field') }}">*</span>{% endif %}</th>
                                     {% endfor %}
                                 </tr></thead>
                                 <tbody id="costRows"></tbody>
@@ -138,7 +138,12 @@
 $(function () {
     const form = document.getElementById('costForm');
     const body = document.getElementById('costRows');
-    const initialRows = {{ entry_rows | tojson }};
+    let initialRows = {{ entry_rows | tojson }};
+    const draftKey = 'cost-grid:{{ current_user.id }}:{{ selected_project.id }}:' + window.location.pathname;
+    try {
+        const draft = JSON.parse(sessionStorage.getItem(draftKey) || 'null');
+        if (Array.isArray(draft) && draft.length <= 20 && !initialRows.some(row => ['date', 'cost_type', 'quantity', 'unit_rate', 'remarks'].some(key => row[key]))) initialRows = draft;
+    } catch (error) { /* Storage is optional; language switching also has an in-place fallback. */ }
     const fields = ['date', 'cost_type', 'quantity', 'unit_rate', 'remarks'];
     function appendRow(data = {}) {
         if (body.children.length >= 20) return;
@@ -184,22 +189,48 @@ $(function () {
         summary.hidden = false;
         summary.focus();
     }
+    function saveDraft() {
+        const rows = [...body.children].map(row => Object.fromEntries(fields.map(key => [key, value(row, key)])));
+        try { sessionStorage.setItem(draftKey, JSON.stringify(rows)); return true; }
+        catch (error) { return false; }
+    }
+    function clearDraft() { try { sessionStorage.removeItem(draftKey); } catch (error) {} }
     initialRows.forEach(appendRow);
     const serverErrors = {{ row_errors | tojson }};
     if (Object.keys(serverErrors).length) showErrors('No costs were saved. Correct the highlighted rows.', serverErrors);
     while (body.children.length < 5) appendRow();
     document.getElementById('addCostRows').addEventListener('click', () => {
         for (let i = 0; i < 5 && body.children.length < 20; i++) appendRow();
+        saveDraft();
     });
     body.addEventListener('input', event => updateTotal(event.target.closest('tr')));
+    body.addEventListener('input', saveDraft);
+    $(body).on('change', 'select, input', saveDraft);
     let saved = false;
+    document.querySelectorAll('.language-switch a').forEach(link => {
+        link.addEventListener('click', async event => {
+            event.preventDefault();
+            if (saveDraft()) {
+                saved = true;
+                window.location.assign(link.href);
+            } else {
+                // Change the language session without navigating away from unsaved rows.
+                try {
+                    await fetch(link.href, {credentials: 'same-origin'});
+                    showErrors({{ t('cost.language_storage_unavailable') | tojson }});
+                } catch (error) {
+                    showErrors({{ t('cost.language_switch_failed') | tojson }});
+                }
+            }
+        });
+    });
     const hasUnsavedRows = () => !saved && [...body.children].some(row => fields.some(key => value(row, key)));
     window.addEventListener('beforeunload', event => {
         if (hasUnsavedRows()) { event.preventDefault(); event.returnValue = ''; }
     });
     document.getElementById('changeProject').addEventListener('click', event => {
         if (hasUnsavedRows() && !window.confirm({{ t('cost.unsaved_rows') | tojson }})) event.preventDefault();
-        else saved = true;
+        else { saved = true; clearDraft(); }
     });
     form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -221,7 +252,6 @@ $(function () {
             const sl = row.querySelector('.row-number').textContent;
             const required = ['cost_type', 'quantity', 'unit_rate'];
             const remarkCauses = [];
-            if (form.dataset.lateEntry === '1') remarkCauses.push({{ t('cost.remark_cause_late') | tojson }});
             if (value(row, 'date') && value(row, 'date') > today) remarkCauses.push({{ t('cost.warning_future') | tojson }});
             if (Number(value(row, 'quantity')) < 0 || Number(value(row, 'unit_rate')) < 0) remarkCauses.push({{ t('cost.remark_cause_negative') | tojson }});
             if (remarkCauses.length) required.push('remarks');
@@ -305,6 +335,7 @@ $(function () {
                 const result = isJson ? await response.json() : null;
                 if (response.ok && result && result.ok) {
                     saved = true;
+                    clearDraft();
                     await Swal.fire({
                         icon: 'success', title: {{ t('cost.saved_cost_count') | tojson }}.replace('{count}', rows.length),
                         timer: 1800, timerProgressBar: true, showConfirmButton: true

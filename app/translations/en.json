@@ -841,8 +841,11 @@
   "cost.required_field": "Required",
   "cost.required_help": "Required for each used row.",
   "cost.date_default_help": "A blank date uses today (Bangladesh time).",
-  "cost.conditional_remark": "Remarks are required for negative quantities or rates, future dates, and completed-project costs.",
+  "cost.conditional_remark": "Remarks are required for negative quantities or rates and future dates.",
   "cost.remark_cause_late": "completed-project costs",
   "cost.remark_cause_negative": "negative quantity or unit rate",
-  "cost.remark_required_for": "Remarks are required for"
+  "cost.remark_required_for": "Remarks are required for",
+  "cost.grid_limit_short": "Up to 20 costs per submission.",
+  "cost.language_storage_unavailable": "Language preference updated. The grid remains open to protect your entries because browser draft storage is unavailable. Save your costs before reloading.",
+  "cost.language_switch_failed": "Could not switch language. Your entries are still here; try again."
 }

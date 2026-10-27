@@ -220,8 +220,6 @@ def _save_cost_rows(late_project=None):
         if len(row['remarks']) > MAX_REMARKS_LEN:
             reasons.append('Remarks must be 500 characters or fewer.')
         remark_causes = []
-        if late_project:
-            remark_causes.append('costs on completed projects')
         if entry_date and entry_date > _today_bd():
             remark_causes.append('a future expense date')
         if any(number < 0 for number in numbers.values()):
@@ -478,8 +476,8 @@ def add_late_cost(project_id):
             flash(f"Remarks must be {MAX_REMARKS_LEN} characters or fewer.", "danger")
             return _render_add_cost(late_project=project, form_data=request.form)
 
-        if not remarks:
-            flash("A clear remark is required for late costs on completed projects.", "danger")
+        if not remarks and (parsed_qty < 0 or parsed_rate < 0 or parsed_date > _today_bd()):
+            flash("Remarks are required for negative quantities, negative rates, or future expense dates.", "danger")
             return _render_add_cost(late_project=project, form_data=request.form)
 
         parsed_total = calculate_total(parsed_qty, parsed_rate)
