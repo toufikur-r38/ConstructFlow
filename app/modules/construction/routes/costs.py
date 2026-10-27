@@ -2,7 +2,7 @@ from decimal import InvalidOperation
 from io import BytesIO
 from zipfile import ZipFile, ZIP_DEFLATED
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, Response, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timezone, timedelta
 import logging
@@ -150,12 +150,129 @@ def _safe_report_name(value):
     )
 
 
-def _render_add_cost(late_project=None, form_data=None):
+COST_ROW_FIELDS = ('date', 'cost_type', 'quantity', 'unit_rate', 'remarks')
+
+
+def _save_cost_rows(late_project=None):
+    columns = {key: request.form.getlist(key + '[]') for key in COST_ROW_FIELDS}
+    rows = [{key: values[i].strip() if i < len(values) else ''
+             for key, values in columns.items()}
+            for i in range(max((len(v) for v in columns.values()), default=0))]
+    errors = {}
+
+    def fail(message, status=422):
+        if request.headers.get('X-Cost-Grid') == '1':
+            return jsonify(ok=False, message=message, errors=errors), status
+        flash(message, 'danger')
+        return _render_add_cost(late_project=late_project, form_data=rows, row_errors=errors), status
+
+    if len(rows) > 20:
+        errors.update({i: ['A submission can contain at most 20 rows.'] for i in range(21, len(rows) + 1)})
+        return fail('A submission can contain at most 20 rows.', 400)
+    selected_project_id = str(late_project.id) if late_project else request.form.get('project_id', '').strip()
+    try:
+        project = db.session.get(Project, int(selected_project_id))
+    except ValueError:
+        project = None
+    active_rows = [(i, row) for i, row in enumerate(rows, 1) if any(row.values())]
+    if not active_rows:
+        errors[1] = ['Complete at least one cost row.']
+        return fail('No costs were saved. Complete at least one row.')
+    if (not project or project.is_void or
+            (late_project and project.id != late_project.id) or
+            project.status != ('Completed' if late_project else 'Running')):
+        errors.update({i: ['The selected project is unavailable or its status no longer allows cost entry.'] for i, _ in active_rows})
+        return fail('No costs were saved. Check the selected project.')
+    entries = []
+    allowed_types = get_dropdown_options(COST_TYPE)
+    for index, row in active_rows:
+        reasons = []
+        entry_date = None
+        try:
+            entry_date = datetime.strptime(row['date'], '%Y-%m-%d').date() if row['date'] else _today_bd()
+        except ValueError:
+            reasons.append('Expense date must be a valid date (YYYY-MM-DD). Leave it blank to use today.')
+        if not row['cost_type']:
+            reasons.append('Category is required.')
+        elif len(row['cost_type']) > MAX_COST_TYPE_LEN or row['cost_type'] not in allowed_types:
+            reasons.append('Category must be selected from the current managed dropdown list (maximum 50 characters).')
+        numbers = {}
+        for field, label in (('quantity', 'Quantity'), ('unit_rate', 'Unit rate')):
+            try:
+                if not row[field]:
+                    raise ValueError(f'{label} is required.')
+                number = to_money(row[field])
+                if abs(number) > to_money('9999999999999.99'):
+                    raise ValueError(f'{label} exceeds the maximum supported value of 9,999,999,999,999.99.')
+                numbers[field] = number
+            except InvalidOperation:
+                reasons.append(f'{label} must be a valid finite number within the supported range.')
+            except ValueError as exc:
+                reasons.append(str(exc))
+        total = None
+        if len(numbers) == 2:
+            try:
+                total = calculate_total(numbers['quantity'], numbers['unit_rate'])
+                if abs(total) > to_money('9999999999999.99'):
+                    raise InvalidOperation
+            except InvalidOperation:
+                reasons.append('Calculated total exceeds the maximum supported amount of 9,999,999,999,999.99.')
+        if len(row['remarks']) > MAX_REMARKS_LEN:
+            reasons.append('Remarks must be 500 characters or fewer.')
+        remark_causes = []
+        if late_project:
+            remark_causes.append('costs on completed projects')
+        if entry_date and entry_date > _today_bd():
+            remark_causes.append('a future expense date')
+        if any(number < 0 for number in numbers.values()):
+            remark_causes.append('negative quantity or unit rate')
+        if remark_causes and not row['remarks']:
+            reasons.append('Remarks are required for ' + ', '.join(remark_causes) + '.')
+        if reasons:
+            errors[index] = reasons
+        else:
+            entries.append((index, CostEntry(
+                project_id=project.id, date=entry_date, cost_type=row['cost_type'],
+                quantity=numbers['quantity'], unit_rate=numbers['unit_rate'], total_amount=total,
+                remarks=row['remarks'] or None, user_id=current_user.id)))
+    if errors:
+        return fail('No costs were saved. Correct the highlighted rows and submit again.')
+    saving_sl = None
+    try:
+        for saving_sl, entry in entries:
+            db.session.add(entry)
+            db.session.flush()
+        saving_sl = None
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        logging.exception('Error saving cost rows by %s', current_user.username)
+        reason = friendly_database_error(exc, 'save these cost entries', COST_TEXT_LIMITS)
+        affected = [saving_sl] if saving_sl else [i for i, _ in entries]
+        errors.update({i: [reason] for i in affected})
+        return fail('No costs were saved. The entire batch was rolled back.', 500)
+    invalidate_dashboard_math()
+    logging.info('User %s added %s cost entries', current_user.username, len(entries))
+    flash(f'{len(entries)} cost entries saved successfully!', 'success')
+    destination = (url_for('costs.view_costs', project_filter=late_project.id)
+                   if late_project else url_for('costs.add_cost', project_id=selected_project_id))
+    if request.headers.get('X-Cost-Grid') == '1':
+        return jsonify(ok=True, redirect=destination)
+    return redirect(destination)
+
+
+def _render_add_cost(late_project=None, form_data=None, row_errors=None):
     projects = [late_project] if late_project else _running_project_choices()
+    selected_project_id = request.form.get('project_id') or request.args.get('project_id')
+    if not selected_project_id and form_data and not isinstance(form_data, list):
+        selected_project_id = form_data.get('project_id')
+    selected_project = late_project or next(
+        (project for project in projects if str(project.id) == str(selected_project_id)), None)
+    if not selected_project:
+        return render_template('select_cost_project.html', projects=projects)
     recent_costs = (
         CostEntry.query
-        .join(Project, CostEntry.project_id == Project.id)
-        .filter(CostEntry.is_void == False, Project.is_void == False, Project.status == 'Running')
+        .filter(CostEntry.is_void == False, CostEntry.project_id == selected_project.id)
         .order_by(CostEntry.logged_at.desc())
         .limit(15)
         .all()
@@ -163,11 +280,14 @@ def _render_add_cost(late_project=None, form_data=None):
     return render_template(
         'add_cost.html',
         projects=projects,
+        selected_project=selected_project,
         recent_costs=recent_costs,
         cost_types=get_dropdown_options(COST_TYPE),
         current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         late_project=late_project,
         form_data=form_data,
+        row_errors=row_errors or {},
+        entry_rows=form_data if isinstance(form_data, list) else [dict(form_data or {})],
         form_action=(
             url_for('costs.add_late_cost', project_id=late_project.id)
             if late_project else url_for('costs.add_cost')
@@ -182,10 +302,13 @@ def _render_add_cost(late_project=None, form_data=None):
 @limiter.limit("30 per minute")   
 def add_cost():
  
+    if request.method == 'POST' and request.form.get('batch_entry') == '1':
+        return _save_cost_rows()
+
     if request.method == 'POST':
  
         project_id_str = request.form.get('project_id', '').strip()
-        date_str       = request.form.get('date', '').strip()
+        date_str = request.form.get('date', '').strip() or _today_bd().isoformat()
         cost_type      = request.form.get('cost_type', '').strip()
         qty_str        = request.form.get('quantity', '').strip()
         rate_str       = request.form.get('unit_rate', '').strip()
@@ -249,6 +372,10 @@ def add_cost():
             flash(f"Remarks must be {MAX_REMARKS_LEN} characters or fewer.", "danger")
             return _render_add_cost(form_data=request.form)
  
+        if not remarks and (parsed_qty < 0 or parsed_rate < 0 or parsed_date > _today_bd()):
+            flash('Remarks are required for negative quantities, negative rates, or future expense dates.', 'danger')
+            return _render_add_cost(form_data=request.form)
+
         # Total is always derived — never trusted from the form
         parsed_total = calculate_total(parsed_qty, parsed_rate)
  
@@ -303,8 +430,11 @@ def add_late_cost(project_id):
         flash("Late costs are only needed for completed projects.", "warning")
         return redirect(url_for('costs.view_costs', project_filter=project.id))
 
+    if request.method == 'POST' and request.form.get('batch_entry') == '1':
+        return _save_cost_rows(late_project=project)
+
     if request.method == 'POST':
-        date_str  = request.form.get('date', '').strip()
+        date_str = request.form.get('date', '').strip() or _today_bd().isoformat()
         cost_type = request.form.get('cost_type', '').strip()
         qty_str   = request.form.get('quantity', '').strip()
         rate_str  = request.form.get('unit_rate', '').strip()

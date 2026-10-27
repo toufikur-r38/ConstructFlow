@@ -1,14 +1,14 @@
 {% extends "layout.html" %}
 {% block title %}{{ t("cost.construction_expenditure_entry") }} - {{ t("common.app_name") }}{% endblock %}
 {% block content %}
-{% set form = form_data or {} %}
+
 
 <link href="{{ url_for('static', filename='vendor/select2/css/select2.min.css') }}" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/select2/css/select2-bootstrap-5-theme.min.css') }}" />
 
 <div class="container-fluid mt-4">
     <div class="row justify-content-center mb-5">
-        <div class="col-md-10">
+        <div class="col-md-12">
             <div class="card shadow-sm border-top border-4 border-success">
                 <div class="card-body p-4">
                     <h4 class="fw-bold mb-4" style="color: var(--navy);"><i class="fas fa-hard-hat text-warning me-2"></i>{{ t("cost.construction_expenditure_entry") }}</h4>
@@ -19,89 +19,46 @@
                     </div>
                     {% endif %}
 
-                    <form id="costForm" action="{{ form_action }}" method="POST" data-late-entry="{{ '1' if late_project else '0' }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">1. {{ t("cost.project_site") }} <span class="text-danger">*</span></label>
-                                {% if late_project %}
-                                <input type="hidden" name="project_id" value="{{ late_project.id }}">
-                                <select class="form-select" disabled>
-                                    <option selected>{{ late_project.project_name }} ({{ t("cost.completed") }})</option>
-                                </select>
-                                {% else %}
-                                <select name="project_id" class="form-select project-search-select" required>
-                                    <option value="" selected disabled>{{ t("cost.choose_project") }}</option>
-                                    {% for project in projects %}
-                                    <option value="{{ project.id }}" {% if form.get('project_id') == project.id|string %}selected{% endif %}>{{ project.project_name }}</option>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h5 class="mb-0 text-primary">{{ selected_project.project_name }}</h5>
+                        <a href="{{ url_for('costs.add_cost') }}" id="changeProject" class="btn btn-outline-secondary btn-sm">{{ t('cost.change_project') }}</a>
+                    </div>
+                    <form id="costForm" action="{{ form_action }}" method="POST" novalidate data-late-entry="{{ '1' if late_project else '0' }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="batch_entry" value="1">
+                        <input type="hidden" name="project_id" value="{{ selected_project.id }}">
+                        <p class="small text-muted">{{ t('cost.grid_help') }} <span class="text-danger">*</span> {{ t('cost.required_help') }} {{ t('cost.date_default_help') }} {{ t('cost.conditional_remark') }}</p>
+                        <div id="costErrors" class="alert alert-danger" role="alert" tabindex="-1" hidden></div>
+                        <div class="table-responsive cost-entry-grid">
+                            <table class="table table-bordered align-middle mb-0">
+                                <thead class="table-light"><tr>
+                                    <th scope="col">SL</th>
+                                    {% for label in ['cost.expense_date', 'cost.category', 'cost.quantity', 'cost.per_unit_rate_tk', 'cost.total_tk', 'cost.details_remarks'] %}
+                                    <th scope="col">{{ t(label) }}{% if label in ['cost.category', 'cost.quantity', 'cost.per_unit_rate_tk'] or (late_project and label == 'cost.details_remarks') %} <span class="text-danger" aria-label="{{ t('cost.required_field') }}">*</span>{% elif label == 'cost.details_remarks' %} <span class="text-danger" aria-label="{{ t('cost.conditional_remark') }}">*</span>{% endif %}</th>
                                     {% endfor %}
-                                </select>
-                                {% endif %}
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">2. {{ t("cost.expense_date") }} <span class="text-danger">*</span></label>
-                                <input type="date" name="date" class="form-control" id="entryDate" value="{{ form.get('date', '') }}" required>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">3. {{ t("cost.category") }} <span class="text-danger">*</span></label>
-                                <select name="cost_type" class="form-select search-select" required>
-                                    <option value="">{{ t("cost.search_category") }}</option>
-                                    {% for cost_type in cost_types %}
-                                    <option value="{{ cost_type }}" {% if form.get('cost_type') == cost_type %}selected{% endif %}>{{ cost_type }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">4. {{ t("cost.quantity") }} <span class="text-danger">*</span></label>
-                                <input type="number" id="qty" name="quantity" class="form-control" value="{{ form.get('quantity', '') }}" placeholder="0" step="any" required>
-                                <div class="form-check form-switch mt-2">
-                                    <input class="form-check-input" type="checkbox" id="negativeQtyToggle">
-                                    <label class="form-check-label small fw-semibold" for="negativeQtyToggle">{{ t("cost.make_quantity_negative") }}</label>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">5. {{ t("cost.per_unit_rate_tk") }} <span class="text-danger">*</span></label>
-                                <input type="number" id="rate" name="unit_rate" class="form-control" value="{{ form.get('unit_rate', '') }}" placeholder="0.00" step="any" required>
-                                <div class="form-check form-switch mt-2">
-                                    <input class="form-check-input" type="checkbox" id="negativeRateToggle">
-                                    <label class="form-check-label small fw-semibold" for="negativeRateToggle">{{ t("cost.make_rate_negative") }}</label>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="p-2 bg-light rounded border text-center h-100 d-flex flex-column justify-content-center">
-                                    <label class="form-label fw-bold text-danger mb-0 small">6. {{ t("cost.total_amount_upper") }} </label>
-                                    <h3 class="mb-0 text-danger fw-bold">৳ <span id="totalLabel">0.00</span></h3>
-                                    <input type="hidden" name="total_amount" id="totalInput" value="0">
-                                </div>
-                            </div>
-
-                            <div class="col-md-10">
-                                <label class="form-label fw-bold">
-                                    7. {{ t("cost.details_remarks") }}{% if late_project %} <span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <input type="text"
-                                       name="remarks"
-                                       id="remarksInput"
-                                       class="form-control"
-                                       maxlength="500"
-                                       autocomplete="off"
-                                       value="{{ form.get('remarks', '') }}"
-                                       placeholder="{% if late_project %}{{ t("cost.late_remark_placeholder") }}{% else %}{{ t("cost.remarks_example") }}{% endif %}"
-                                       {% if late_project %}required{% endif %}>
-                            </div>
-
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow-sm">
-                                    {% if late_project %}{{ t("cost.save_late_cost") }}{% else %}{{ t("cost.save_entry") }}{% endif %}
-                                </button>
-                            </div>
+                                </tr></thead>
+                                <tbody id="costRows"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3">
+                            <button type="button" id="addCostRows" class="btn btn-link px-0 fw-semibold">+ {{ t('cost.add_five_rows') }}</button>
+                            <button type="submit" class="btn btn-success fw-bold px-4" id="submitCosts">{{ t('cost.submit_all') }}</button>
                         </div>
                     </form>
+                    <template id="costRowTemplate">
+                        <tr>
+                            <th scope="row" class="row-number text-muted text-center"></th>
+                            <td><input type="date" name="date[]" class="form-control" aria-label="{{ t('cost.expense_date') }}"></td>
+                            <td><select name="cost_type[]" class="form-select search-select" aria-label="{{ t('cost.category') }}">
+                                <option value=""></option>
+                                {% for cost_type in cost_types %}<option value="{{ cost_type }}">{{ cost_type }}</option>{% endfor %}
+                            </select></td>
+                            <td><input type="number" name="quantity[]" class="form-control" step="0.01" placeholder="0" aria-label="{{ t('cost.quantity') }}"></td>
+                            <td><input type="number" name="unit_rate[]" class="form-control" step="0.01" placeholder="0.00" aria-label="{{ t('cost.per_unit_rate_tk') }}"></td>
+                            <td class="text-end fw-semibold"><output class="row-total">0.00</output></td>
+                            <td><input type="text" name="remarks[]" class="form-control" maxlength="500" aria-label="{{ t('cost.details_remarks') }}"></td>
+                        </tr>
+                    </template>
                 </div>
             </div>
         </div>
@@ -167,260 +124,206 @@
 <script src="{{ url_for('static', filename='vendor/select2/js/select2.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<style>
+.cost-entry-grid tr.cost-row-error > * { background-color: #fff0f0; border-color: #dc3545; }
+.cost-row-reason { display: block; min-width: 160px; color: #b02a37; white-space: normal; font-weight: normal; font-size: .8rem; }
+.cost-entry-grid table { min-width: 1200px; }
+.cost-entry-grid td { padding: .35rem; min-width: 140px; }
+.cost-entry-grid td:nth-child(3) { min-width: 210px; }
+.cost-entry-grid td:last-child { min-width: 230px; }
+.cost-entry-grid .form-control, .cost-entry-grid .form-select { border-color: transparent; }
+.cost-entry-grid .form-control:focus { border-color: #198754; }
+</style>
 <script>
-    // Initialize Select2 Combobox
-    $(document).ready(function () {
-        $('.search-select').select2({
-            theme: 'bootstrap-5',
-            placeholder: '{{ t("cost.type_to_search_category") }}',
-            allowClear: true,
-            width: '100%'
+$(function () {
+    const form = document.getElementById('costForm');
+    const body = document.getElementById('costRows');
+    const initialRows = {{ entry_rows | tojson }};
+    const fields = ['date', 'cost_type', 'quantity', 'unit_rate', 'remarks'];
+    function appendRow(data = {}) {
+        if (body.children.length >= 20) return;
+        const row = document.getElementById('costRowTemplate').content.firstElementChild.cloneNode(true);
+        row.querySelector('.row-number').textContent = body.children.length + 1;
+        fields.forEach(key => {
+            const input = row.querySelector('[name="' + key + '[]"]');
+            if (data[key] !== undefined) input.value = data[key];
         });
-
-        $('.project-search-select').select2({
-            theme: 'bootstrap-5',
-            placeholder: '{{ t("cost.choose_project") }}',
-            allowClear: true,
-            width: '100%'
-        });
-    });
-
-    // Total Amount Auto-Calculation
-    const qtyInput = document.getElementById('qty');
-    const rateInput = document.getElementById('rate');
-    const negativeQtyToggle = document.getElementById('negativeQtyToggle');
-    const negativeRateToggle = document.getElementById('negativeRateToggle');
-    const totalLabel = document.getElementById('totalLabel');
-    const totalInput = document.getElementById('totalInput');
-    const entryDateInput = document.getElementById('entryDate');
-    const remarksInput = document.getElementById('remarksInput');
-    const isLateEntry = document.getElementById('costForm').dataset.lateEntry === '1';
-
-    function getNumericValue(input) {
-        const value = Number.parseFloat(input.value);
-        return Number.isFinite(value) ? value : 0;
+        body.appendChild(row);
+        $(row).find('.search-select').select2({theme: 'bootstrap-5', width: '100%', placeholder: {{ t('cost.search_category') | tojson }}, allowClear: true});
+        updateTotal(row);
+        document.getElementById('addCostRows').disabled = body.children.length >= 20;
     }
-
-    function applySignFromToggle(input, toggle) {
-        const value = Number.parseFloat(input.value);
-        if (!Number.isFinite(value) || value === 0) {
+    function value(row, key) { return row.querySelector('[name="' + key + '[]"]').value.trim(); }
+    function updateTotal(row) {
+        const total = (Number(value(row, 'quantity')) || 0) * (Number(value(row, 'unit_rate')) || 0);
+        row.querySelector('.row-total').textContent = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        row.querySelector('.row-total').classList.toggle('text-danger', total < 0);
+    }
+    function showErrors(message, errors = {}) {
+        body.querySelectorAll('.cost-row-error').forEach(row => row.classList.remove('cost-row-error'));
+        body.querySelectorAll('.cost-row-reason').forEach(node => node.remove());
+        const summary = document.getElementById('costErrors');
+        summary.replaceChildren();
+        const heading = document.createElement('div');
+        heading.textContent = message;
+        summary.appendChild(heading);
+        Object.entries(errors).forEach(([sl, reasons]) => {
+            const text = 'SL ' + sl + ': ' + reasons.join(' ');
+            const item = document.createElement('div');
+            item.textContent = text;
+            summary.appendChild(item);
+            const row = body.children[Number(sl) - 1];
+            if (row) {
+                row.classList.add('cost-row-error');
+                const reason = document.createElement('span');
+                reason.className = 'cost-row-reason';
+                reason.textContent = text;
+                row.lastElementChild.appendChild(reason);
+            }
+        });
+        summary.hidden = false;
+        summary.focus();
+    }
+    initialRows.forEach(appendRow);
+    const serverErrors = {{ row_errors | tojson }};
+    if (Object.keys(serverErrors).length) showErrors('No costs were saved. Correct the highlighted rows.', serverErrors);
+    while (body.children.length < 5) appendRow();
+    document.getElementById('addCostRows').addEventListener('click', () => {
+        for (let i = 0; i < 5 && body.children.length < 20; i++) appendRow();
+    });
+    body.addEventListener('input', event => updateTotal(event.target.closest('tr')));
+    let saved = false;
+    const hasUnsavedRows = () => !saved && [...body.children].some(row => fields.some(key => value(row, key)));
+    window.addEventListener('beforeunload', event => {
+        if (hasUnsavedRows()) { event.preventDefault(); event.returnValue = ''; }
+    });
+    document.getElementById('changeProject').addEventListener('click', event => {
+        if (hasUnsavedRows() && !window.confirm({{ t('cost.unsaved_rows') | tojson }})) event.preventDefault();
+        else saved = true;
+    });
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const rows = [...body.children].filter(row => fields.some(key => value(row, key)));
+        if (!rows.length) {
+            showErrors({{ t('cost.complete_one_row') | tojson }}, {1: [{{ t('cost.complete_one_row') | tojson }}]});
             return;
         }
-
-        input.value = toggle.checked ? -Math.abs(value) : Math.abs(value);
-    }
-
-    function syncToggleFromInput(input, toggle) {
-        const value = Number.parseFloat(input.value);
-        if (!Number.isFinite(value)) {
+        const localDate = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).formatToParts(new Date()).reduce((parts, part) => {
+            parts[part.type] = part.value;
+            return parts;
+        }, {});
+        const today = localDate.year + '-' + localDate.month + '-' + localDate.day;
+        const errors = {};
+        const labels = {date: {{ t('cost.expense_date') | tojson }}, cost_type: {{ t('cost.category') | tojson }}, quantity: {{ t('cost.quantity') | tojson }}, unit_rate: {{ t('cost.per_unit_rate_tk') | tojson }}, remarks: {{ t('cost.details_remarks') | tojson }}};
+        for (const row of rows) {
+            const sl = row.querySelector('.row-number').textContent;
+            const required = ['cost_type', 'quantity', 'unit_rate'];
+            const remarkCauses = [];
+            if (form.dataset.lateEntry === '1') remarkCauses.push({{ t('cost.remark_cause_late') | tojson }});
+            if (value(row, 'date') && value(row, 'date') > today) remarkCauses.push({{ t('cost.warning_future') | tojson }});
+            if (Number(value(row, 'quantity')) < 0 || Number(value(row, 'unit_rate')) < 0) remarkCauses.push({{ t('cost.remark_cause_negative') | tojson }});
+            if (remarkCauses.length) required.push('remarks');
+            const reasons = [];
+            for (const key of fields) {
+                const input = row.querySelector('[name="' + key + '[]"]');
+                input.required = required.includes(key);
+                if (input.required && !value(row, key)) reasons.push(labels[key] + ': ' + (key === 'remarks' ? {{ t('cost.remark_required_for') | tojson }} + ' ' + remarkCauses.join(', ') + '.' : {{ t('cost.required_field') | tojson }}));
+                else if (!input.checkValidity()) reasons.push(labels[key] + ': ' + input.validationMessage);
+            }
+            if (reasons.length) errors[sl] = reasons;
+        }
+        if (Object.keys(errors).length) {
+            showErrors('No costs were saved. Correct the highlighted rows.', errors);
             return;
         }
-
-        if (toggle.checked && value > 0) {
-            input.value = -Math.abs(value);
-            return;
-        }
-
-        toggle.checked = value < 0;
-    }
-
-    function calculateTotal() {
-        const qty = getNumericValue(qtyInput);
-        const rate = getNumericValue(rateInput);
-        const total = (qty * rate).toFixed(2);
-        
-        // Show commas in the display label
-        totalLabel.innerText = parseFloat(total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        // Hidden input keeps raw number
-        totalInput.value = total;
-    }
-
-    qtyInput.addEventListener('input', function() {
-        syncToggleFromInput(qtyInput, negativeQtyToggle);
-        calculateTotal();
-    });
-    rateInput.addEventListener('input', function() {
-        syncToggleFromInput(rateInput, negativeRateToggle);
-        calculateTotal();
-    });
-    negativeQtyToggle.addEventListener('change', function() {
-        applySignFromToggle(qtyInput, negativeQtyToggle);
-        calculateTotal();
-    });
-    negativeRateToggle.addEventListener('change', function() {
-        applySignFromToggle(rateInput, negativeRateToggle);
-        calculateTotal();
-    });
-    syncToggleFromInput(qtyInput, negativeQtyToggle);
-    syncToggleFromInput(rateInput, negativeRateToggle);
-    calculateTotal();
-
-    // Modern Confirmation Alert
-    document.getElementById('costForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    const form = this;
-
-    const totalAmountText = document.getElementById('totalLabel').innerText;
-
-    const currentTotal = parseFloat(totalInput.value) || 0;
-    const qtyValue = getNumericValue(qtyInput);
-    const rateValue = getNumericValue(rateInput);
-    const bothQuantityAndRateNegative = qtyValue < 0 && rateValue < 0;
-    const entryDateValue = entryDateInput.value;
-    const remarksValue = remarksInput ? remarksInput.value.trim() : '';
-    const selectedDate = entryDateValue ? new Date(entryDateValue + 'T00:00:00') : null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isFutureDate = selectedDate && selectedDate > today;
-
-    let alertTitle = '{{ t("cost.confirm_entry_title") }}';
-
-    let alertHtml = `{{ t("cost.default_confirm_intro") }} <strong class="text-danger">BDT ${totalAmountText}</strong>. <br>{{ t("cost.default_confirm_question") }}`;
-
-    let confirmBtnColor = '#198754';
-
-    let alertIcon = 'question';
-
-    if (isLateEntry && !remarksValue) {
-        Swal.fire({
-            title: '{{ t("cost.remark_required") }}',
-            text: '{{ t("cost.late_remark_required_text") }}',
-            icon: 'warning',
-            confirmButtonColor: '#dc3545',
-            backdrop: `rgba(26, 42, 108, 0.4)`
+        const money = amount => amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const summary = document.createElement('div');
+        summary.className = 'text-start';
+        const addLine = (label, content) => {
+            const line = document.createElement('p');
+            line.className = 'mb-2';
+            const strong = document.createElement('strong');
+            strong.textContent = label + ': ';
+            line.append(strong, document.createTextNode(content));
+            summary.appendChild(line);
+        };
+        const warnings = [];
+        let totalCents = 0;
+        rows.forEach(row => {
+            const sl = row.querySelector('.row-number').textContent;
+            const quantity = Number(value(row, 'quantity'));
+            const rate = Number(value(row, 'unit_rate'));
+            const rowCents = Math.round((Math.abs(quantity) * Math.abs(rate) + Number.EPSILON) * 100) * (quantity * rate < 0 ? -1 : 1);
+            totalCents += rowCents;
+            const causes = [];
+            if (value(row, 'date') > today) causes.push({{ t('cost.warning_future') | tojson }} + ' (' + value(row, 'date') + ').');
+            if (quantity < 0 && rate < 0) {
+                causes.push({{ t('cost.warning_double_negative') | tojson }} + ' BDT ' + money(rowCents / 100) + '.');
+            } else {
+                if (quantity < 0) causes.push({{ t('cost.warning_negative_quantity') | tojson }});
+                if (rate < 0) causes.push({{ t('cost.warning_negative_rate') | tojson }});
+                if (quantity < 0 || rate < 0) causes.push({{ t('cost.warning_result') | tojson }} + ' BDT ' + money(rowCents / 100) + '.');
+            }
+            if (causes.length) warnings.push('SL ' + sl + ': ' + causes.join(' '));
         });
-        return;
-    }
-
-    if (isFutureDate) {
-
-        alertTitle = '{{ t("cost.confirm_future_date") }}';
-
-        alertHtml = `
-            {{ t("cost.future_date_intro") }}
-            <strong class="text-warning">${entryDateValue}</strong>,
-            {{ t("cost.future_date_after_today") }}
-            <br><br>
-            {{ t("cost.amount_label") }}
-            <strong class="text-danger">BDT ${totalAmountText}</strong>
-            <br><br>
-            <span class="text-muted small">
-                {{ t("cost.future_date_help") }}
-            </span>
-        `;
-
-        confirmBtnColor = '#e65100';
-
-        alertIcon = 'warning';
-    }
-
-    if (currentTotal < 0) {
-
-        alertTitle = '{{ t("cost.confirm_negative_adjustment") }}';
-
-        alertHtml = `
-            {{ t("cost.negative_balance_intro") }}
-            <strong class="text-danger">BDT ${totalAmountText}</strong>.
-            <br><br>
-            <span class="text-muted small">
-                {{ t("cost.negative_balance_help_prefix") }}
-                <b>{{ t("cost.refund_credit_material_reversal") }}</b> {{ t("cost.record_label") }}
-            </span>
-        `;
-
-        confirmBtnColor = '#dc3545';
-
-        alertIcon = 'warning';
-    }
-
-    if (isFutureDate && currentTotal < 0) {
-
-        alertTitle = '{{ t("cost.confirm_future_negative_adjustment") }}';
-
-        alertHtml = `
-            {{ t("cost.future_negative_intro") }}
-            <strong class="text-warning">${entryDateValue}</strong>.
-            <br><br>
-            {{ t("cost.amount_label") }}
-            <strong class="text-danger">BDT ${totalAmountText}</strong>
-            <br><br>
-            <span class="text-muted small">
-                {{ t("cost.future_negative_help") }}
-            </span>
-        `;
-
-        confirmBtnColor = '#dc3545';
-
-        alertIcon = 'warning';
-    }
-
-    if (bothQuantityAndRateNegative) {
-
-        alertTitle = isFutureDate ? '{{ t("cost.confirm_future_double_negative_entry") }}' : '{{ t("cost.confirm_double_negative_entry") }}';
-
-        alertHtml = `
-            {{ t("cost.quantity_rate_negative") }}
-            <br><br>
-            {{ t("cost.quantity_label") }}
-            <strong class="text-danger">${qtyValue}</strong>
-            <br>
-            {{ t("cost.unit_rate_label") }}
-            <strong class="text-danger">BDT ${rateValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
-            ${isFutureDate ? `<br><br>{{ t("cost.date_label") }} <strong class="text-warning">${entryDateValue}</strong>` : ''}
-            <br><br>
-            {{ t("cost.double_negative_creates") }}
-            <strong class="text-success">{{ t("cost.positive_addition_of") }} BDT ${totalAmountText}</strong>.
-            <br><br>
-            <span class="text-muted small">
-                {{ t("cost.confirm_intentional_before_saving") }}
-            </span>
-        `;
-
-        confirmBtnColor = '#e65100';
-
-        alertIcon = 'warning';
-    }
-
-    if (isLateEntry) {
-        if (alertTitle === '{{ t("cost.confirm_entry_title") }}') {
-            alertTitle = '{{ t("cost.confirm_late_cost") }}';
-            confirmBtnColor = '#e65100';
-            alertIcon = 'warning';
-        }
-
-        alertHtml += `
-            <br><br>
-            <div class="alert alert-warning py-2 px-3 mb-0 text-start">
-                {{ t("cost.late_cost_warning") }}
-            </div>
-        `;
-    }
-
-    Swal.fire({
-        title: alertTitle,
-        html: alertHtml,
-        icon: alertIcon,
-        showCancelButton: true,
-        confirmButtonColor: confirmBtnColor,
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-check"></i> {{ t("cost.yes_save_entry") }}',
-        cancelButtonText: '<i class="fas fa-times"></i> {{ t("common.cancel") }}',
-        backdrop: `rgba(26, 42, 108, 0.4)`
-    }).then((result) => {
-
-        if (result.isConfirmed) {
-
-            Swal.fire({
-                title: '{{ t("cost.saved") }}',
-                text: '{{ t("cost.entry_logged") }}',
-                icon: 'success',
-                timer: 1200,
-                showConfirmButton: false
-
-            }).then(() => {
-                form.submit();
+        addLine({{ t('cost.project_site') | tojson }}, {{ selected_project.project_name | tojson }});
+        addLine({{ t('cost.submission_count') | tojson }}, String(rows.length));
+        addLine({{ t('cost.total_tk') | tojson }}, 'BDT ' + money(totalCents / 100));
+        if (warnings.length) {
+            const heading = document.createElement('strong');
+            heading.textContent = {{ t('cost.submission_warnings') | tojson }};
+            summary.appendChild(heading);
+            const list = document.createElement('ul');
+            list.className = 'mt-2 mb-0';
+            list.style.maxHeight = '240px';
+            list.style.overflowY = 'auto';
+            warnings.forEach(warning => {
+                const item = document.createElement('li');
+                item.className = 'mb-2';
+                item.textContent = warning;
+                list.appendChild(item);
             });
+            summary.appendChild(list);
+        }
+        const confirmation = await Swal.fire({
+            title: {{ t('cost.confirm_entry_title') | tojson }}, html: summary,
+            icon: warnings.length ? 'warning' : 'question', showCancelButton: true,
+            confirmButtonText: {{ t('cost.save_cost_count') | tojson }}.replace('{count}', rows.length),
+            cancelButtonText: {{ t('cost.keep_editing') | tojson }}, confirmButtonColor: '#198754'
+        });
+        if (confirmation.isConfirmed) {
+            const button = document.getElementById('submitCosts');
+            button.disabled = true;
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST', body: new FormData(form),
+                    headers: {'X-Cost-Grid': '1', 'Accept': 'application/json'}
+                });
+                const isJson = (response.headers.get('content-type') || '').includes('application/json');
+                const result = isJson ? await response.json() : null;
+                if (response.ok && result && result.ok) {
+                    saved = true;
+                    await Swal.fire({
+                        icon: 'success', title: {{ t('cost.saved_cost_count') | tojson }}.replace('{count}', rows.length),
+                        timer: 1800, timerProgressBar: true, showConfirmButton: true
+                    });
+                    window.location.assign(result.redirect);
+                } else if (result && result.errors) {
+                    showErrors(result.message, result.errors);
+                } else {
+                    const message = response.status === 429 ? 'Too many requests. Wait before submitting again.' :
+                        response.status === 400 ? 'The request or security token is invalid. Your rows are still here; refresh your session before retrying.' :
+                        response.redirected ? 'Your session or security token may have expired, or the request was rate limited. Your rows are still here. Check your session in another tab before retrying.' :
+                        'The server could not confirm this submission. Your rows are still here. Check the ledger before retrying to avoid duplicates.';
+                    showErrors(message);
+                }
+            } catch (error) {
+                showErrors('Connection interrupted. Your rows are still here. Check the ledger before retrying because the server may have received the submission.');
+            } finally {
+                button.disabled = false;
+            }
         }
     });
 });
