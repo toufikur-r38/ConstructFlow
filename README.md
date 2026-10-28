@@ -24,7 +24,7 @@ Install [Python 3.13](https://www.python.org/downloads/) with **Add Python to PA
    notepad .env
    ```
 
-   Replace `SECRET_KEY` with a long random value and set `DEFAULT_ADMIN_PASSWORD` to your chosen password. Keep the development settings for local use. SQLite is created automatically; no separate database server is needed.
+   Replace `SECRET_KEY` with a long random value. Set `DEFAULT_ADMIN_USERNAME` and `DEFAULT_ADMIN_PASSWORD` to your chosen Super Admin credentials; both are required by `seed-defaults`. Keep the development settings for local use. SQLite is created automatically; no separate database server is needed.
 
 3. Create the database and first admin:
 
@@ -39,7 +39,7 @@ Install [Python 3.13](https://www.python.org/downloads/) with **Add Python to PA
    .\.venv\Scripts\python.exe main.py
    ```
 
-   Open http://127.0.0.1:5000/login. Sign in as **admin** using the password you set in `.env`.
+   Open http://127.0.0.1:5000/login. Sign in using `DEFAULT_ADMIN_USERNAME` and `DEFAULT_ADMIN_PASSWORD` from `.env`.
 
 ## Run again
 
@@ -49,10 +49,33 @@ Install [Python 3.13](https://www.python.org/downloads/) with **Add Python to PA
 
 Stop the server with **Ctrl+C**. After pulling database changes, run the `db upgrade` command again.
 
+## Reset the local development database
+
+Use this when you want to erase all local users, projects, costs, and other database records and start fresh. These steps apply only to the default SQLite database at `app/construction.db`, when `DATABASE_URL` is unset. They do not reset a database configured through `DATABASE_URL`.
+
+1. Stop the app with **Ctrl+C**. Back up the database first if you need to keep any data; deleting it permanently removes all its records.
+2. Confirm that `.env` contains your desired `DEFAULT_ADMIN_USERNAME` and `DEFAULT_ADMIN_PASSWORD`.
+3. From the repository folder, delete the database, recreate its tables, and seed the default dropdowns and Super Admin:
+
+   ```powershell
+   Remove-Item -LiteralPath .\app\construction.db
+   .\.venv\Scripts\python.exe -m flask --app main.py db upgrade
+   .\.venv\Scripts\python.exe -m flask --app main.py seed-defaults
+   ```
+
+   Run each command only after the previous one succeeds. Keep the `migrations` folder; it contains the instructions for rebuilding the database.
+
+4. Start the app and sign in with the credentials from `.env`:
+
+   ```powershell
+   .\.venv\Scripts\python.exe main.py
+   ```
+
 ## Common setup problems
 
 - **`.venv\Scripts\python.exe` is missing:** create the virtual environment in step 1 before installing dependencies.
 - **Admin password does not work:** changing `.env` or running `seed-defaults` again does not reset an existing account. Ask another admin to reset it under `/register`.
+- **Changing the default username:** `seed-defaults` creates an account if that username does not exist; it does not rename an existing account. Edit existing users under `/register`.
 - **Form expired:** refresh the login page and submit again. Tokens expire after one hour.
 
 ## Deployment
